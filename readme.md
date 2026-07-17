@@ -56,9 +56,9 @@ const decoded = tokenizer.decoder(tokenIDs) // Hello, wellcome to my channel.
 ```
 ## Suggestion
 
-I Recomened that use TypeScript for Type Safety and know what function is Exist in classes.
+I recoommeded that use TypeScript for Type Safety and know what function is Exist in classes.
 
-And Always Pair with Your tools in your Package like
+And Always Pair with Our tools in Our Package like
 ```js
 import {Tools} from '@mineproness/tensorloop'
 
