@@ -1,0 +1,22 @@
+{
+  "name": "@mineproness/tensorloop",
+  "version": "1.0.0",
+  "description": "The most powerfull Machine Learing Libeary for AI.",
+  "keywords": [
+    "ai",
+    "llm",
+    "Large",
+    "Language",
+    "model",
+    "Small",
+    "Language",
+    "Model"
+  ],
+  "license": "MIT",
+  "author": "mineproness",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
