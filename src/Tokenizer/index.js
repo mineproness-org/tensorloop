@@ -15,7 +15,7 @@ export class Tokenizer {
         this.WordtoID = Object.fromEntries(this.vocabs.map((e, idx) => [e, idx]))
     }
     encoder(text = "") {
-        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}`~\|":><?])/g, " $1 ")
+        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ")
         const splitedWords = AddSpaces.split(/\s+/).filter(e => e.length > 0)
         const output = []
         for (let a = 0; a < splitedWords.length; a++) {
@@ -69,7 +69,7 @@ export class Tokenizer {
                 }
             }
         }
-        return Validate(output).join(" ").replaceAll(/\s+([,.;'{}`~\|":><?])/g, "$1")
+        return Validate(output).join(" ").filter(e=> e.trim().length > 0).replaceAll(/\s+([,.;'{}`!~\|":><?])/g, "$1")
     }
 }
 
