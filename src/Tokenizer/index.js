@@ -33,7 +33,9 @@ export class Tokenizer {
                             return true
                         }
                         return false
-                    }).reduce((prev, curr) => prev && curr)
+                    
+                    }).reduce((prev, curr) => prev && curr, true)
+                    if(wordsliced.length == 0) console.error("Some Word Doesn't Exist in Vocabs List. so It can be undefined!")
                     if (matched) {
                         wordsliced.map((e) => output.push(e))
                         output.push("$130")
