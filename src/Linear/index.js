@@ -51,7 +51,7 @@ export class Linear {
             for (let t = 0; t < input.length; t++) {
                 sum += input[t] * this.Weights[a][t]
             }
-            output.push(sum)
+            output[a] = sum
         }
         return output
     }
