@@ -35,7 +35,7 @@ export class Tokenizer {
                         return false
                     
                     }).reduce((prev, curr) => prev && curr, true)
-                    if(wordsliced.length == 0) console.error("Some Word Doesn't Exist in Vocabs List. so It can be undefined!")
+                    // if(wordsliced.length == 0) console.error("Some Word Doesn't Exist in Vocabs List. so It can be undefined!")
                     if (matched) {
                         wordsliced.map((e) => output.push(e))
                         output.push("$130")
@@ -69,7 +69,7 @@ export class Tokenizer {
                 }
             }
         }
-        return Validate(output).join(" ").filter(e=> e.trim().length > 0).replaceAll(/\s+([,.;'{}`!~\|":><?])/g, "$1")
+        return Validate(output.filter(e=> e.trim().length > 0)).join(" ").replaceAll(/\s+([,.;'{}`!~\|":><?])/g, "$1")
     }
 }
 
