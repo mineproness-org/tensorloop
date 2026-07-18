@@ -7,4 +7,5 @@ export class Embedding{
     })
     forward(token: number | number[]) : Float32Array[] | Float32Array[][]
     backward(token: number , inputGradient: number[] | Float32Array[], learingRate: number) : void
+    Save() : void
 }
