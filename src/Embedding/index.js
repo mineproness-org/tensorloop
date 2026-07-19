@@ -41,7 +41,7 @@ export class Embedding {
                 return this.vectors[e]
             })
         } else {
-            if (this.vectors[token]) {
+            if (!this.vectors[token]) {
                 this.vectors[token] = GetEmbeddingVectors(token, this.embeddingSize, this.configs.save.filename)
             }
             return this.vectors[token]

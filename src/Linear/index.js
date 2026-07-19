@@ -1,4 +1,4 @@
-import { GetWeights, GetVectors, Save, SaveVectors } from '../GetConfigs.js'
+import { GetWeights, Save,GetVector ,  SaveVectors } from '../GetConfigs.js'
 import { existsSync } from 'fs'
 function GenerateWeightsBias(embeddingSize, vocabSize) {
     const vectors = []
