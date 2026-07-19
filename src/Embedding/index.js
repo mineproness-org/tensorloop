@@ -1,5 +1,5 @@
 import fs, { existsSync } from 'fs'
-import { GetEmbeddingVectors, GetVectors, SaveEmbeddingVectors, SaveVectors } from '../GetConfigs.js'
+import { GetEmbeddingVectors, SaveEmbeddingVectors, SaveVectors } from '../GetConfigs.js'
 // import { config } from 'process'
 
 function GenerateVectors(embeddingSize, vocabSize) {
