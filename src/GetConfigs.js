@@ -43,7 +43,7 @@ export function GetEmbeddingVectors(token, embeddingSize, filename) {
     const buffer = Buffer.allocUnsafe(PER_BTYES_VECTOR)
     fs.readSync(fd, buffer, 0, PER_BTYES_VECTOR, token * PER_BTYES_VECTOR)
     fs.closeSync(fd)
-    return new Float32Array(buffer)
+    return new Float32Array(buffer.buffer, buffer.byteOffset, embeddingSize)
 }
 
 export function SaveEmbeddingVectors(vectors = [new Float32Array([1, 2, 3])], filename) {
