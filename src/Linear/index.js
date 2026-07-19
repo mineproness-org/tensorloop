@@ -1,4 +1,4 @@
-import { GetVector, GetVectors, Save, SaveVectors } from '../GetConfigs.js'
+import { GetWeights, GetVectors, Save, SaveVectors } from '../GetConfigs.js'
 import { existsSync } from 'fs'
 function GenerateWeightsBias(embeddingSize, vocabSize) {
     const vectors = []
@@ -22,7 +22,7 @@ export class Linear {
         if (configs && configs.save) {
             this.configs = configs
             if (existsSync(configs.save.filename[0]) && existsSync(configs.save.filename[1])) {
-                const Vectors = GetVectors(configs.save.filename[0], embeddingSize)
+                const Vectors = GetWeights(configs.save.filename[0], embeddingSize)
                 const Bias = GetVector(configs.save.filename[1])
                 this.Weights = Vectors;
                 this.Bias = Bias

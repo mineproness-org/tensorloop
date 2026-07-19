@@ -1,5 +1,5 @@
 import fs, { existsSync } from 'fs'
-import { GetVectors, SaveVectors } from '../GetConfigs.js'
+import { GetEmbeddingVectors, GetVectors, SaveEmbeddingVectors, SaveVectors } from '../GetConfigs.js'
 // import { config } from 'process'
 
 function GenerateVectors(embeddingSize, vocabSize) {
@@ -16,14 +16,16 @@ function GenerateVectors(embeddingSize, vocabSize) {
 export class Embedding {
     vectors = []
     configs;
+    embeddingSize = 0
     constructor(embeddingSize, vocabSize, configs) {
         this.configs = configs
+        this.embeddingSize = embeddingSize
         if (configs && configs.save) {
             if (existsSync(configs.save.filename)) {
-                 this.vectors = GetVectors(configs.save.filename, embeddingSize)
+                this.vectors = []
             } else {
                 this.vectors = GenerateVectors(embeddingSize, vocabSize)
-                SaveVectors(configs.save.filename, this.vectors)
+                this.Save()
             }
         } else {
             this.vectors = GenerateVectors(embeddingSize, vocabSize)
@@ -31,18 +33,26 @@ export class Embedding {
         }
     }
     forward(token) {
-       if(Array.isArray(token)){
-        return token.map((e)=> this.vectors[e])
-       }else{
-        return this.vectors[token]
-       }
-    }
-    backward(token, inputGradient, learingRate){
-        for(let a = 0; a < this.vectors[token].length; a++){
-           this.vectors[token][a] -= learingRate * inputGradient[a]
+        if (Array.isArray(token)) {
+            return token.map((e) => {
+                const id = this.vectors[e]
+                if (id) return id
+                this.vectors[e] = GetEmbeddingVectors(e, this.embeddingSize, this.configs.save.filename)
+                return this.vectors[e]
+            })
+        } else {
+            if (this.vectors[token]) {
+                this.vectors[token] = GetEmbeddingVectors(token, this.embeddingSize, this.configs.save.filename)
+            }
+            return this.vectors[token]
         }
     }
-    Save(){
-        SaveVectors(this.configs.save.filename , this.vectors)
+    backward(token, inputGradient, learingRate) {
+        for (let a = 0; a < this.vectors[token].length; a++) {
+            this.vectors[token][a] -= learingRate * inputGradient[a]
+        }
+    }
+    Save() {
+        SaveEmbeddingVectors(this.vectors, this.configs.save.filename)
     }
 }
