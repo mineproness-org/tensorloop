@@ -1,13 +1,16 @@
 import fs from "fs";
 import { join } from "path";
 
-export function SaveVectors (filename, vectors){
-    const sizeOfArray = vectors.length;
-    const sizeOfEmbedding = vectors[0].length;
-    const floatArray = vectors.map((e)=> Buffer.from(e.buffer))
-    const combinedBuffer = Buffer.concat(floatArray)
-    fs.writeFileSync(filename , combinedBuffer)
-    
+export function SaveVectors(filename, vectors) {
+    const fd = fs.openSync(filename, "w");
+
+    try {
+        for (const vector of vectors) {
+            fs.writeSync(fd, Buffer.from(vector.buffer));
+        }
+    } finally {
+        fs.closeSync(fd);
+    }
 }
 
 export function GetVectors(filename, embeddingSize){
