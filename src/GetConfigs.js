@@ -53,7 +53,7 @@ export function SaveEmbeddingVectors(vectors = [new Float32Array([1, 2, 3])], fi
             const vector = vectors[a]
             if (vector == undefined) continue;
             const offset = a * vector.length * Float32Array.BYTES_PER_ELEMENT;
-            fs.writeSync(fd, Buffer.from(vector.buffer) , 0 , vector.byteLength, offset)
+            fs.writeSync(fd, Buffer.from(vector.buffer, vector.byteOffset, vector.byteLength) , 0 , vector.byteLength, offset)
 
         }
     }finally{
