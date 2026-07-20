@@ -6,7 +6,7 @@ export function SaveVectors(filename, vectors) {
 
     try {
         for (const vector of vectors) {
-            fs.writeSync(fd, Buffer.from(vector.buffer));
+            fs.writeSync(fd, Buffer.from(vector.buffer, vector.byteOffset, vector.byteLength));
         }
     } finally {
         fs.closeSync(fd);
