@@ -56,13 +56,17 @@ export class Linear {
         return output
     }
     backward(outputGradient, learningRate) {
+        const input = this.input;
+        const weights = this.Weights
         const inputGradient = new Float32Array(this.input.length)
-        for (let a = 0; a < this.Weights.length; a++) {
-            for (let at = 0; at < this.input.length; at++) {
-                inputGradient[at] += outputGradient[a] * this.Weights[a][at]
-                this.Weights[a][at] -= learningRate * this.input[at] * outputGradient[a]
+        for (let a = 0; a < weights.length; a++) {
+            const gran = outputGradient[a]
+            const w = weights[a]
+            for (let at = 0; at < input.length; at++) {
+                inputGradient[at] += gran * w[at]
+                w[at] -= learningRate * input[at] * gran
             }
-            this.Bias[a] -= learningRate * outputGradient[a]
+            this.Bias[a] -= learningRate * gran
         }
         return inputGradient
     }
