@@ -1,4 +1,4 @@
-import { GetWeights, Save,GetVector ,  SaveVectors } from '../GetConfigs.js'
+import { LoadBias,LoadVectors,SaveBias,SaveVectors } from '../GetConfigs.js'
 import { existsSync } from 'fs'
 function GenerateWeightsBias(embeddingSize, vocabSize) {
     const vectors = []
@@ -22,8 +22,8 @@ export class Linear {
         if (configs && configs.save) {
             this.configs = configs
             if (existsSync(configs.save.filename[0]) && existsSync(configs.save.filename[1])) {
-                const Vectors = GetWeights(configs.save.filename[0], embeddingSize)
-                const Bias = GetVector(configs.save.filename[1])
+                const Vectors = LoadVectors(configs.save.filename[0], embeddingSize)
+                const Bias = LoadBias(configs.save.filename[1])
                 this.Weights = Vectors;
                 this.Bias = Bias
             } else {
@@ -31,7 +31,7 @@ export class Linear {
                 this.Weights = vectors;
                 this.Bias = Bias;
                 SaveVectors(configs.save.filename[0], this.Weights)
-                Save(configs.save.filename[1], this.Bias)
+                SaveBias(configs.save.filename[1], this.Bias)
             }
         } else {
             const { vectors, Bias } = GenerateWeightsBias(embeddingSize, vocabSize)
@@ -41,10 +41,10 @@ export class Linear {
     }
     Save() {
         SaveVectors(this.configs.save.filename[0], this.Weights)
-        Save(this.configs.save.filename[1], this.Bias)
+        SaveBias(this.configs.save.filename[1], this.Bias)
     }
     forward(input) {
-        this.input = input
+        this.input.push(input)
         const output = new Float32Array(this.Weights.length)
         for (let a = 0; a < this.Weights.length; a++) {
             let sum = this.Bias[a]
@@ -55,10 +55,10 @@ export class Linear {
         }
         return output
     }
-    backward(outputGradient, learningRate) {
-        const input = this.input;
+    backward(outputGradient, learningRate, idx) {
+        const input = this.input[idx];
         const weights = this.Weights
-        const inputGradient = new Float32Array(this.input.length)
+        const inputGradient = new Float32Array(input.length)
         for (let a = 0; a < weights.length; a++) {
             const gran = outputGradient[a]
             const w = weights[a]

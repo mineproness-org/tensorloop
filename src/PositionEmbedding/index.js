@@ -1,5 +1,5 @@
 import fs, { existsSync } from 'fs'
-import { SaveVectors, LoadVectors } from '../GetConfigs.js'
+import { LoadVectors, SaveVectors } from '../GetConfigs.js'
 // import { config } from 'process'
 
 function GenerateVectors(embeddingSize, vocabSize) {
@@ -13,7 +13,7 @@ function GenerateVectors(embeddingSize, vocabSize) {
     return vector
 }
 
-export class Embedding {
+export class PositionEmbedding {
     vectors = []
     configs;
     embeddingSize = 0
@@ -22,7 +22,7 @@ export class Embedding {
         this.embeddingSize = embeddingSize
         if (configs && configs.save) {
             if (existsSync(configs.save.filename)) {
-                this.vectors = LoadVectors(configs.save.filename, embeddingSize)
+                this.vectors = LoadVectors(onfigs.save.filename, embeddingSize)
             } else {
                 this.vectors = GenerateVectors(embeddingSize, vocabSize)
                 this.Save()
@@ -38,6 +38,7 @@ export class Embedding {
                 return this.vectors[e]
             })
         } else {
+
             return this.vectors[token]
         }
     }
@@ -48,5 +49,19 @@ export class Embedding {
     }
     Save() {
         SaveVectors(this.vectors, this.configs.save.filename)
+    }
+    addPos(xEM) {
+        const out = []
+
+        for (let pos = 0; pos < xEM.length; pos++) {
+            const tokenVector = xEM[pos]
+            const posVector = this.forward(pos)
+            const x = new Float32Array(xEM[0].length)
+            for (let a = 0; a < tokenVector.length; a++) {
+                x[a] = tokenVector[a] + posVector[a]
+            }
+            out.push(x)
+        }
+        return out
     }
 }

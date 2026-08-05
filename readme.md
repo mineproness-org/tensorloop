@@ -10,6 +10,8 @@ A Library that Supply AI Tools and Large Language model Development tools like E
 - CrossEntroy for Loss Calculation.
 - Relu for Stable Layer.
 - Tokenizer for convert into tokens.
+- Self attention 
+- Position Embedding
 
 ## Configs
 

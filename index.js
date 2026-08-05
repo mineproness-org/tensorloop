@@ -5,6 +5,8 @@ import { Softmax as softmax2 } from "./src/Softmax/index.js";
 import { crossEntropy } from "./src/crossEntropy/index.js";
 import {tools} from './src/tools/index.js'
 import {ReLU} from './src/ReLU/index.js'
+import {PositionEmbedding as PE} from './src/PositionEmbedding/index.js'
+import {SelfAttention as ST} from './src/SelfAttention/index.js'
 export const Tokenizer = tokenizer
 export const Embedding = embeddding2
 export const Linear = li2
@@ -12,3 +14,5 @@ export const Softmax = softmax2
 export const CrossEntropy = crossEntropy
 export const Tools = tools
 export const ReLu = ReLU
+export const PositionEmbedding = PE
+export const SelfAttention = ST
