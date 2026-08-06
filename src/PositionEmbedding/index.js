@@ -22,7 +22,7 @@ export class PositionEmbedding {
         this.embeddingSize = embeddingSize
         if (configs && configs.save) {
             if (existsSync(configs.save.filename)) {
-                this.vectors = LoadVectors(onfigs.save.filename, embeddingSize)
+                this.vectors = LoadVectors(configs.save.filename, embeddingSize)
             } else {
                 this.vectors = GenerateVectors(embeddingSize, vocabSize)
                 this.Save()

@@ -31,5 +31,5 @@ export function SaveBias(vectors, path){
 export function LoadBias(path){
    const buffer = fs.readFileSync(path)
    const flatArray = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4 )
-   return vectors
+   return flatArray
 }

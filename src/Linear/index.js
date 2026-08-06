@@ -1,4 +1,4 @@
-import { LoadBias,LoadVectors,SaveBias,SaveVectors } from '../GetConfigs.js'
+import { LoadBias, LoadVectors, SaveBias, SaveVectors } from '../GetConfigs.js'
 import { existsSync } from 'fs'
 function GenerateWeightsBias(embeddingSize, vocabSize) {
     const vectors = []
@@ -30,8 +30,8 @@ export class Linear {
                 const { vectors, Bias } = GenerateWeightsBias(embeddingSize, vocabSize)
                 this.Weights = vectors;
                 this.Bias = Bias;
-                SaveVectors(configs.save.filename[0], this.Weights)
-                SaveBias(configs.save.filename[1], this.Bias)
+                SaveVectors(this.Weights, configs.save.filename[0])
+                SaveBias(this.Bias, configs.save.filename[1])
             }
         } else {
             const { vectors, Bias } = GenerateWeightsBias(embeddingSize, vocabSize)
@@ -40,8 +40,8 @@ export class Linear {
         }
     }
     Save() {
-        SaveVectors(this.configs.save.filename[0], this.Weights)
-        SaveBias(this.configs.save.filename[1], this.Bias)
+        SaveVectors(this.Weights, this.configs.save.filename[0])
+        SaveBias(this.Bias, this.configs.save.filename[1])
     }
     forward(input) {
         this.input.push(input)
@@ -69,5 +69,8 @@ export class Linear {
             this.Bias[a] -= learningRate * gran
         }
         return inputGradient
+    }
+    ClearInputCache(){
+        this.input = []
     }
 }

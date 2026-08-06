@@ -29,7 +29,7 @@ export class Embedding {
             }
         } else {
             this.vectors = GenerateVectors(embeddingSize, vocabSize)
-
+  
         }
     }
     forward(token) {

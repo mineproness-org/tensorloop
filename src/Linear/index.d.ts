@@ -9,4 +9,5 @@ export class Linear{
     forward(input : number[]) : Float32Array[]
     backward(outGradient : number[] , learingRate: number, idx: number) : Float32Array[]
     Save() : void
+    ClearInputCache() : void
 }
