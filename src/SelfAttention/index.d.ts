@@ -4,9 +4,8 @@ export class SelfAttention{
     k : Float32Array[]
     input;
     constructor(embeddingSize : number, configs: {
-        save: {
             dirname: string
-        }
+        
     })
     weights : Float32Array[]
     score : number
