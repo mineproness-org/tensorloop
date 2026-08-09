@@ -17,24 +17,31 @@ export class SelfAttention {
         this.configs = configs
         this.softmax = new Softmax()
         this.score = Math.sqrt(embeddingSize)
-        this.query = new Linear(embeddingSize, embeddingSize, { save: { filename: [`./${configs.dirname}/query.bin`, `./${configs.dirname}/queryBias.bin`] } })
-        this.key = new Linear(embeddingSize, embeddingSize, { save: { filename: [`./${configs.dirname}/key.bin`, `./${configs.dirname}/keyBias.bin`] } })
-        this.value = new Linear(embeddingSize, embeddingSize, { save: { filename: [`./${configs.dirname}/value.bin`, `./${configs.dirname}/valueBias.bin`] } })
+        this.query = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/query.bin`, `${configs.dirname}/queryBias.bin`] } })
+        this.key = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/key.bin`, `${configs.dirname}/keyBias.bin`] } })
+        this.value = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/value.bin`, `${configs.dirname}/valueBias.bin`] } })
     }
     forward(vectors) {
         this.q = vectors.map((e) => this.query.forward(e))
         this.v = vectors.map((e) => this.value.forward(e))
         this.k = vectors.map((e) => this.key.forward(e))
-        // console.log(this.q, this.k, this.v)
         const attentionSocres = []
         for (let i = 0; i < this.q.length; i++) {
-            attentionSocres[i] = new Float32Array(this.k.length)
-            for (let a = 0; a < this.k.length; a++) {
-                let dot = 0;
-                for (let d = 0; d < this.q[i].length; d++) {
-                    dot += this.q[i][d] * this.k[a][d]
+            attentionSocres[i] = new Float32Array(this.k.length);
+
+            for (let j = 0; j < this.k.length; j++) {
+                if (j > i) {
+                    attentionSocres[i][j] = -1e9; // mask future
+                    continue;
                 }
-                attentionSocres[i][a] = dot / this.score
+
+                let dot = 0;
+
+                for (let d = 0; d < this.q[i].length; d++) {
+                    dot += this.q[i][d] * this.k[j][d];
+                }
+
+                attentionSocres[i][j] = dot / this.score;
             }
         }
         const weights = attentionSocres.map((e) => this.softmax.forward(e))
@@ -93,6 +100,7 @@ export class SelfAttention {
         const dK = this.k.map(k => new Float32Array(k.length));
         for (let a = 0; a < this.q.length; a++) {
             for (let j = 0; j < this.k.length; j++) {
+                if (j > a) continue; 
                 for (let r = 0; r < this.q[a].length; r++) {
                     dQ[a][r] += dScores[a][j] * this.k[j][r] / this.score;
                     dK[j][r] += dScores[a][j] * this.q[a][r] / this.score;
