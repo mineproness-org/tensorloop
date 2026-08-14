@@ -78,7 +78,7 @@ export class TransformerBlock {
         return dInput
     }
     clearInputCache() {
-        this.ffn.clearInputCache()
+        this.ffn.ClearInputCache()
         this.selfAttention.key.ClearInputCache()
         this.selfAttention.query.ClearInputCache()
         this.selfAttention.value.ClearInputCache()
