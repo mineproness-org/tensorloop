@@ -8,6 +8,7 @@ export class Tokenizer {
     vocabSize = 0;
     IdtoWord = {};
     WordtoID = {};
+    EOSToken = 2
     constructor() {
         this.vocabs = JSON.parse(readFileSync(join(__dirname, "vocabs.json"), "utf-8"))
         this.vocabSize = this.vocabs.length

@@ -8,10 +8,11 @@ A Library that Supply AI Tools and Large Language model Development tools like E
 - Linear Weights and Bias. 
 - Softmax forward and Backward.
 - CrossEntroy for Loss Calculation.
-- Relu for Stable Layer.
+- Relu and GELU for Stable Layer.
 - Tokenizer for convert into tokens.
 - Self attention 
 - Position Embedding
+- PAD token is '<PAD>' and EOS token <EOS>
 
 ## Configs
 

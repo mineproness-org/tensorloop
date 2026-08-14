@@ -60,7 +60,7 @@ export class Linear {
         const weights = this.Weights
         const inputGradient = new Float32Array(input.length)
         for (let a = 0; a < weights.length; a++) {
-            const gran = outputGradient[a]
+            const gran = Math.max(-1, Math.min(1, outputGradient[a]))
             const w = weights[a]
             for (let at = 0; at < input.length; at++) {
                 inputGradient[at] += gran * w[at]

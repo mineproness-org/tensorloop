@@ -1,4 +1,4 @@
-export default class GELU {
+export class GELU {
     constructor() {
         this.inputs = []
     }
