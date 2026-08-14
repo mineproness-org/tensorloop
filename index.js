@@ -8,6 +8,8 @@ import {ReLU} from './src/ReLU/index.js'
 import {PositionEmbedding as PE} from './src/PositionEmbedding/index.js'
 import {SelfAttention as ST} from './src/SelfAttention/index.js'
 import {GELU as GU} from './src/GELU/index.js'
+import {FFN as ffn} from './src/FFN/index.js'
+import {LayerNorm as LN} from './src/LayerNorm/index.js'
 export const Tokenizer = tokenizer
 export const Embedding = embeddding2
 export const Linear = li2
@@ -18,3 +20,5 @@ export const ReLu = ReLU
 export const PositionEmbedding = PE
 export const SelfAttention = ST
 export const GELU = GU
+export const FFN = ffn
+export const LayerNorm = LN

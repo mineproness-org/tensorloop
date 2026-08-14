@@ -1,74 +1,126 @@
-![tensor loop logo](https://i.imgur.com/I7WW3jf_d.webp?maxwidth=760&fidelity=grand)
+# TensorLoop ➰
 
-A Library that Supply AI Tools and Large Language model Development tools like Embedding, Linear, ReLU, softmax etc...
+A high-performance JavaScript library that provides essential AI and Large Language Model (LLM) development utilities. Build, train, and run neural network components like Embeddings, Linear layers, Activations, and Tokenizers directly in JavaScript.
 
-## Feature
+---
 
-- Embedding Vectors.
-- Linear Weights and Bias. 
-- Softmax forward and Backward.
-- CrossEntroy for Loss Calculation.
-- Relu and GELU for Stable Layer.
-- Tokenizer for convert into tokens.
-- Self attention 
-- Position Embedding
-- PAD token is '<PAD>' and EOS token <EOS>
+## 🚀 Features
 
-## Configs
+- **Transformer Block**: Complete modular block managing full attention and forward/backward training passes.
+- **Embedding Vectors**: High-speed lookup and embedding initialization.
+- **Linear Layer**: Fully connected layers with manageable weights and biases.
+- **Activations**: Forward and backward propagation for **Softmax**, **ReLU**, and **GELU**.
+- **Loss Functions**: **CrossEntropy** loss calculation for training classification tasks.
+- **Attention & Positioning**: Built-in **Self-Attention** and **Positional Embedding** matrices.
+- **Text Processing**: Built-in **Tokenizer** to convert raw text into token IDs and back.
+- **Special Tokens**: Native support for `<PAD>` and `<EOS>`.
 
-You can Pass a Object in a embedding and linear function. like :-
+---
 
-```js
-import {Embedding , linear} from '@mineproness/tensorloop'
+## 🏗 Core Architecture
 
+### Transformer Block
+The `TransformerBlock` encapsulates attention, layer normalization, and feed-forward networks into a single trainable module.
+
+```typescript
+import { TransformerBlock } from '@mineproness/tensorloop'
+
+// Initialize the block with an embedding size and save directory
+const transformer = new TransformerBlock(1024, {
+    dirname: "./model/transformer_layers"
+})
+
+// Forward Pass: Processes an array of typed float arrays
+const output = transformer.forward(inputVectors)
+
+// Backward Pass: Calculates gradients and updates weights using a learning rate
+const dInput = transformer.backward(dOutput, 0.001)
+
+// Clear cache to free up system memory after an iteration
+transformer.clearInputCache()
+
+// Persist the transformer block weights to disk
+transformer.Save()
+```
+
+---
+
+## 🛠 Configurations
+
+You can configure saving mechanisms by passing a configuration object to the `Embedding` and `Linear` classes.
+
+```javascript
+import { Embedding, Linear } from '@mineproness/tensorloop'
+
+// Initialize an Embedding layer and auto-save the weights
 const embedding = new Embedding(1024, 2000, {
     save: {
         filename: "./model/vectors.bin"
     }
 })
-const linear = new Embedding(1024, 2000, {
+
+// Initialize a Linear layer (requires an array to save Weights and Biases separately)
+const linear = new Linear(1024, 2000, {
     save: {
-        filename: ["./model/Weights.bin" , "./model/Bias.bin"]
+        filename: ["./model/Weights.bin", "./model/Bias.bin"]
     }
 })
 ```
 
-Linear Layer need a filename array because it need to save the Weights and Bias and always use bin extension.
+> 📌 **Note:** The `Linear` layer requires a two-element filename array to separate the Weights and Bias files. Always use the `.bin` extension.
 
-## Optimizations
+---
 
-It is Highly Fast Because of Float 32 Array and it is can handle 1024 embedding Size.
-We build that with Raw Javascript for Best Optimization.
+## ⚡ Optimizations
 
-## Tokenizer
+- **Float32Array Powered**: Built on top of native typed arrays for maximum numerical performance and low memory overhead.
+- **Heavy Workloads**: Easily handles large scaling operations, including dense 1024 embedding sizes.
+- **Vanilla JavaScript**: Written entirely in raw JavaScript to eliminate bloated dependencies and optimize V8 execution.
 
-It is main use to Split Words and Convert into token ids that can be again Deconvert.
+---
 
+## 🔤 Tokenizer
 
-like this Exmple 
+The tokenizer splits raw text strings into token IDs, which can then be fully decoded back into human-readable text.
+
+### Example Usage:
 
 ```javascript
 import { Tokenizer } from '@mineproness/tensorloop'
 
 const tokenizer = new Tokenizer()
-const text = "Hello, Wellcome to My Channel."
+const text = "Hello, Welcome to My Channel."
 
-const { tokenIDs } = tokenizer.encoder(text) // ["hello", "$12" , "well" , "come", "$130"....]
-const decoded = tokenizer.decoder(tokenIDs) // Hello, wellcome to my channel.
+// Encode text to token IDs
+const { tokenIDs } = tokenizer.encoder(text) 
+console.log(tokenIDs) // Output example: ["hello", "\$12", "well", "come", "\$130"...]
 
+// Decode token IDs back to text
+const decoded = tokenizer.decoder(tokenIDs) 
+console.log(decoded) // Output: "Hello, Welcome to My Channel."
 ```
-## Suggestion
 
-I recoommeded that use TypeScript for Type Safety and know what function is Exist in classes.
+---
 
-And Always Pair with Our tools in Our Package like
-```js
-import {Tools} from '@mineproness/tensorloop'
+## 💡 Best Practices & Suggestions
+
+### 1. Use TypeScript
+We highly recommend using **TypeScript** with TensorLoop to enforce type safety and leverage IDE autocomplete features for all active classes and methods.
+
+### 2. Pair with Native Tools
+Maximize efficiency by processing your layers with our built-in `Tools` utility suite:
+
+```javascript
+import { Tools } from '@mineproness/tensorloop'
 
 const tools = new Tools()
 
-console.log(tools.betterVector(embeedingVectors))
+// Optimize vector arrays for downstream tasks
+console.log(tools.betterVector(embeddingVectors))
 ```
-## Thanks for Visiting this Site
 
-If You watching this, Please give me a star in Github.
+---
+
+## ⭐ Support the Project
+
+Thank you for visiting! If you find this library useful for your AI or LLM workflows, please consider giving us a star on **[GitHub](https://github.com/mineproness-org/tensorloop)**!
