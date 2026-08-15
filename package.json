@@ -1,7 +1,7 @@
 {
   "name": "@mineproness/tensorloop",
-  "version": "1.4.5",
-  "description": "The most powerfull Machine Learning Library for AI.",
+  "version": "1.5.3",
+  "description": "Raw-JAVASCRIPT Based Matirx and AI LLM Package called Tensorloop.",
   "keywords": [
     "ai",
     "llm",
@@ -20,5 +20,4 @@
     "type": "git",
     "url": "https://github.com/mineproness-org/tensorloop.git"
   }
-
 }

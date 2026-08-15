@@ -14,7 +14,7 @@ A high-performance JavaScript library that provides essential AI and Large Langu
 - **Attention & Positioning**: Built-in **Self-Attention** and **Positional Embedding** matrices.
 - **Text Processing**: Built-in **Tokenizer** to convert raw text into token IDs and back.
 - **Special Tokens**: Native support for `<PAD>` and `<EOS>`.
-
+- **FFN BLOCK**: It add a layer to understand Complex Patterns.
 ---
 
 ## 🏗 Core Architecture
@@ -93,7 +93,7 @@ const text = "Hello, Welcome to My Channel."
 
 // Encode text to token IDs
 const { tokenIDs } = tokenizer.encoder(text) 
-console.log(tokenIDs) // Output example: ["hello", "\$12", "well", "come", "\$130"...]
+console.log(tokenIDs) // Output example: ["hello", "$12", "well", "come", "$130"...]
 
 // Decode token IDs back to text
 const decoded = tokenizer.decoder(tokenIDs) 
@@ -107,19 +107,15 @@ console.log(decoded) // Output: "Hello, Welcome to My Channel."
 ### 1. Use TypeScript
 We highly recommend using **TypeScript** with TensorLoop to enforce type safety and leverage IDE autocomplete features for all active classes and methods.
 
-### 2. Pair with Native Tools
-Maximize efficiency by processing your layers with our built-in `Tools` utility suite:
+---
 
-```javascript
-import { Tools } from '@mineproness/tensorloop'
-
-const tools = new Tools()
-
-// Optimize vector arrays for downstream tasks
-console.log(tools.betterVector(embeddingVectors))
-```
+### 2. Always use NodeJS 20 Higher
+This Package optimized for node js 20 or higher. If you use older version it Maybe Break Easliy.
 
 ---
+### 3. Use GELU Always.
+ 
+Gelu is Better Activation because it is not turn a gradient 0 so it is so smoothly works.
 
 ## ⭐ Support the Project
 

@@ -70,7 +70,7 @@ export class Tokenizer {
                 }
             }
         }
-        return Validate(output.filter(e=> e.trim().length > 0)).join(" ").replaceAll(/\s+([,.;'{}`!~\|":><?])/g, "$1")
+        return Validate(output.filter(e=> e.trim().length > 0)).join(" ").replaceAll(/\s+([,.;'{}`!~\"?])/g, "$1")
     }
 }
 
@@ -86,7 +86,6 @@ function Validate(output = ["hello", "guys"]) {
                 bestOutput[idx] = e[0].toLocaleUpperCase() + e.slice(1, e.length)
             } else {
                 bestOutput[idx] = e
-
             }
         }
 
