@@ -1,5 +1,6 @@
 import { LoadBias, LoadVectors, SaveBias, SaveVectors } from '../GetConfigs.js'
 import { existsSync } from 'fs'
+import { CalculateBackward, CalculateLinearForward, InitKernel } from '../GPU.js'
 function GenerateWeightsBias(embeddingSize, vocabSize) {
     const vectors = []
     const Bias = new Float32Array(vocabSize)
@@ -38,6 +39,7 @@ export class Linear {
             this.Weights = vectors;
             this.Bias = Bias;
         }
+        InitKernel(this.Weights, embeddingSize)
     }
     Save() {
         SaveVectors(this.Weights, this.configs.save.filename[0])
@@ -45,29 +47,14 @@ export class Linear {
     }
     forward(input) {
         this.input.push(input)
-        const output = new Float32Array(this.Weights.length)
-        for (let a = 0; a < this.Weights.length; a++) {
-            let sum = this.Bias[a]
-            for (let t = 0; t < input.length; t++) {
-                sum += input[t] * this.Weights[a][t]
-            }
-            output[a] = sum
-        }
-        return output
+        return CalculateLinearForward(this.Weights, this.Bias, input)
     }
     backward(outputGradient, learningRate, idx) {
         const input = this.input[idx];
         const weights = this.Weights
-        const inputGradient = new Float32Array(input.length)
-        for (let a = 0; a < weights.length; a++) {
-            const gran = Math.max(-1, Math.min(1, outputGradient[a]))
-            const w = weights[a]
-            for (let at = 0; at < input.length; at++) {
-                inputGradient[at] += gran * w[at]
-                w[at] -= learningRate * input[at] * gran
-            }
-            this.Bias[a] -= learningRate * gran
-        }
+        const {biasOut,inputGradient, weightsOut} = CalculateBackward(weights, this.Bias, outputGradient, learningRate, input)
+        this.Weights = weightsOut;
+        this.Bias = biasOut
         return inputGradient
     }
     ClearInputCache(){

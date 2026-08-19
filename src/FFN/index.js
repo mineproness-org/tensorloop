@@ -50,5 +50,6 @@ export class FFN {
         this.linear1.ClearInputCache()
         this.linear2.ClearInputCache()
         this.hidden.ClearInputCache()
+        
     }
 }
