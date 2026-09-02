@@ -1,6 +1,7 @@
 import fs, { existsSync } from 'fs'
 import { LoadVectors, SaveVectors } from '../GetConfigs.js'
 // import { config } from 'process'
+import { GPUEmbedding } from '../gpiInit.js'
 
 function GenerateVectors(embeddingSize, vocabSize) {
     const vector = []
@@ -16,7 +17,8 @@ function GenerateVectors(embeddingSize, vocabSize) {
 export class PositionEmbedding {
     vectors = []
     configs;
-    embeddingSize = 0
+    embeddingSize = 0;
+    gpu;
     constructor(embeddingSize, vocabSize, configs) {
         this.configs = configs
         this.embeddingSize = embeddingSize
@@ -29,7 +31,7 @@ export class PositionEmbedding {
             }
         } else {
             this.vectors = GenerateVectors(embeddingSize, vocabSize)
-
+            this.gpu = new GPUEmbedding(this.vectors, vocabSize, embeddingSize, 1)
         }
     }
     forward(token) {
@@ -55,7 +57,7 @@ export class PositionEmbedding {
 
         for (let pos = 0; pos < xEM.length; pos++) {
             const tokenVector = xEM[pos]
-            const posVector = this.forward(pos)
+            const posVector = this.forward([pos])[0]
             const x = new Float32Array(xEM[0].length)
             for (let a = 0; a < tokenVector.length; a++) {
                 x[a] = tokenVector[a] + posVector[a]

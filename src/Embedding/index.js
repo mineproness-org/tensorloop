@@ -1,5 +1,7 @@
 import fs, { existsSync } from 'fs'
 import { SaveVectors, LoadVectors } from '../GetConfigs.js'
+import { GPUEmbedding } from '../gpiInit.js'
+// import { GPUEmbedding } from '../GPU.js'
 // import { config } from 'process'
 
 function GenerateVectors(embeddingSize, vocabSize) {
@@ -17,7 +19,8 @@ export class Embedding {
     vectors = []
     configs;
     embeddingSize = 0
-    constructor(embeddingSize, vocabSize, configs) {
+    gpu;
+    constructor(embeddingSize, vocabSize, contextSize, configs) {
         this.configs = configs
         this.embeddingSize = embeddingSize
         if (configs && configs.save) {
@@ -25,28 +28,26 @@ export class Embedding {
                 this.vectors = LoadVectors(configs.save.filename, embeddingSize)
             } else {
                 this.vectors = GenerateVectors(embeddingSize, vocabSize)
-                this.Save()
+                SaveVectors(this.vectors, this.configs.save.filename)
             }
         } else {
             this.vectors = GenerateVectors(embeddingSize, vocabSize)
-  
-        }
+
+        }  
+        this.gpu = new GPUEmbedding(this.vectors, vocabSize, embeddingSize, contextSize)
     }
     forward(token) {
-        if (Array.isArray(token)) {
-            return token.map((e) => {
-                return this.vectors[e]
-            })
-        } else {
-            return this.vectors[token]
-        }
+        return this.gpu.forward(token)
     }
-    backward(token, inputGradient, learingRate) {
-        for (let a = 0; a < this.vectors[token].length; a++) {
-            this.vectors[token][a] -= learingRate * inputGradient[a]
-        }
+    backward(inputGradient, learingRate){
+         this.gpu.backward(inputGradient, learingRate)
     }
     Save() {
-        SaveVectors(this.vectors, this.configs.save.filename)
+        const vectors = []
+        for(let i = 0; i < this.gpu.vectors.length; i++){
+            const out = this.gpu.vectors[i].toArray()
+            vectors.push(...out)
+        }
+        SaveVectors(vectors.map((e)=> new Float32Array(e)), this.configs.save.filename)
     }
 }

@@ -9,13 +9,15 @@ A high-performance JavaScript library that provides essential AI and Large Langu
 - **Transformer Block**: Complete modular block managing full attention and forward/backward training passes.
 - **Embedding Vectors**: High-speed lookup and embedding initialization.
 - **Linear Layer**: Fully connected layers with manageable weights and biases.
-- **Activations**: Forward and backward propagation for **Softmax**, **ReLU**, and **GELU**.
+- **Activations**: Forward and backward propagation for **Softmax**, **ReLU**, **GELU**.
 - **Loss Functions**: **CrossEntropy** loss calculation for training classification tasks.
 - **Attention & Positioning**: Built-in **Self-Attention** and **Positional Embedding** matrices.
 - **Text Processing**: Built-in **Tokenizer** to convert raw text into token IDs and back.
 - **Special Tokens**: Native support for `<PAD>` and `<EOS>`.
 - **FFN BLOCK**: It add a layer to understand Complex Patterns.
+- **GPU SUPPORT**: Now, The tensorloop can Do Math with GPU.
 ---
+
 
 ## 🏗 Core Architecture
 
@@ -53,7 +55,7 @@ You can configure saving mechanisms by passing a configuration object to the `Em
 import { Embedding, Linear } from '@mineproness/tensorloop'
 
 // Initialize an Embedding layer and auto-save the weights
-const embedding = new Embedding(1024, 2000, {
+const embedding = new Embedding(1024, 2000, 16 {
     save: {
         filename: "./model/vectors.bin"
     }

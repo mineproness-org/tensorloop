@@ -22,9 +22,9 @@ export class SelfAttention {
         this.value = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/value.bin`, `${configs.dirname}/valueBias.bin`] } })
     }
     forward(vectors) {
-        this.q = vectors.map((e) => this.query.forward(e))
-        this.v = vectors.map((e) => this.value.forward(e))
-        this.k = vectors.map((e) => this.key.forward(e))
+        this.q = this.query.forward(vectors)
+        this.v = this.value.forward(vectors)
+        this.k = this.key.forward(vectors)
         const attentionSocres = []
         for (let i = 0; i < this.q.length; i++) {
             attentionSocres[i] = new Float32Array(this.k.length);
@@ -44,7 +44,8 @@ export class SelfAttention {
                 attentionSocres[i][j] = dot / this.score;
             }
         }
-        const weights = attentionSocres.map((e) => this.softmax.forward(e))
+
+        const weights = this.softmax.forward(attentionSocres)
         this.weights = weights
         const output = [];
 
@@ -65,7 +66,6 @@ export class SelfAttention {
 
         for (let i = 0; i < probs.length; i++) {
             let sum = 0;
-
             for (let j = 0; j < probs.length; j++) {
                 const jacobian =
                     i === j
@@ -74,7 +74,6 @@ export class SelfAttention {
 
                 sum += jacobian * dOut[j];
             }
-
             dIn[i] = sum;
         }
 
@@ -100,7 +99,7 @@ export class SelfAttention {
         const dK = this.k.map(k => new Float32Array(k.length));
         for (let a = 0; a < this.q.length; a++) {
             for (let j = 0; j < this.k.length; j++) {
-                if (j > a) continue; 
+                if (j > a) continue;
                 for (let r = 0; r < this.q[a].length; r++) {
                     dQ[a][r] += dScores[a][j] * this.k[j][r] / this.score;
                     dK[j][r] += dScores[a][j] * this.q[a][r] / this.score;
@@ -108,12 +107,12 @@ export class SelfAttention {
             }
         }
         const dInput = this.q.map(() => new Float32Array(this.q[0].length))
+        const dq = this.query.backward(dQ, learningRate)
+        const dk = this.key.backward(dK, learningRate)
+        const dv = this.value.backward(dV, learningRate)
         for (let a = 0; a < this.q.length; a++) {
-            const dq = this.query.backward(dQ[a], learningRate, a)
-            const dk = this.key.backward(dK[a], learningRate, a)
-            const dv = this.value.backward(dV[a], learningRate, a)
             for (let b = 0; b < dq.length; b++) {
-                dInput[a][b] = dq[b] + dk[b] + dv[b]
+                dInput[a][b] = dq[a][b] + dk[a][b] + dv[a][b]
             }
         }
         return dInput
@@ -122,5 +121,10 @@ export class SelfAttention {
         this.query.Save()
         this.key.Save()
         this.value.Save()
+    }
+    ClearInputCache() {
+        this.query.ClearInputCache()
+        this.key.ClearInputCache()
+        this.value.ClearInputCache()
     }
 }

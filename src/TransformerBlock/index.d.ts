@@ -1,6 +1,7 @@
 export class TransformerBlock{
     constructor(embeddingSize: number, configs:{
-        dirname: string
+        dirname: string,
+        activation: "relu" | "gelu"
     })
     Save(): void
     clearInputCache() : void

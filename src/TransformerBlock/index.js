@@ -1,10 +1,12 @@
 import { SelfAttention } from '../SelfAttention/index.js'
 import { FFN } from '../FFN/index.js'
+import fs from 'fs'
 export class TransformerBlock {
     ffn;
     selfAttention;
     constructor(embeddingSize, configs) {
-        this.ffn = new FFN(embeddingSize, "gelu", configs)
+        if(!fs.existsSync(configs.dirname)) fs.mkdirSync(configs.dirname)
+        this.ffn = new FFN(embeddingSize, configs.activation, configs)
         this.selfAttention = new SelfAttention(embeddingSize, configs)
     }
     forward(input) {

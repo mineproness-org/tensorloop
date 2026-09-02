@@ -1,13 +1,18 @@
+import { GPUSoftmax } from "../gpiInit.js";
+
+
 export class Softmax{
+    gpu;
     forward(xLi){
-        const max = Math.max(...xLi)
-        const exp = xLi.map((e)=> Math.exp(e - max))
-        const sum = exp.reduce((a,b)=> a + b , 0)
-        return new Float32Array(exp.map((e)=> e / sum))
+        if(!this.gpu){
+            this.gpu = new GPUSoftmax(xLi, xLi.length)
+        }
+        return this.gpu.forward(xLi)
     }
-    backward(probs , target){
-        const pro = new Float32Array([...probs])
-        pro[target] -= 1
-        return pro
+    backward(xLi , target){
+        return this.gpu.backward(xLi, target)
+    }
+    crossEntropy(probs, target){
+        return this.gpu.crossEntropy(probs, target)
     }
 }

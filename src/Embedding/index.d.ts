@@ -1,6 +1,6 @@
 export class Embedding{
     vectors: Float32Array[]
-    constructor(embeddingSize: number, vocabSize: number, configs: {
+    constructor(embeddingSize: number, vocabSize: number, contextSize: number, configs: {
         save: {
             filename: string
         }
