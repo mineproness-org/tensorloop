@@ -8,4 +8,5 @@ export class Tokenizer{
         tokenIDs: number[]
     }
     decoder(tokens: number[] | number[][]) : string
+    trainTokenizer(text: string, mergeSize: number, filename: string) : void
 }

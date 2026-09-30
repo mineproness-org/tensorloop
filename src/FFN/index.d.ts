@@ -1,9 +1,9 @@
 export class FFN{
-    constructor(embeddingSize: number, hiddenLayer: "gelu" | "relu" , configs: {
+    constructor(device: GPUAdapter, embeddingSize: number, configs: {
         dirname: string
     })
-    forward(input: Float32Array[]) : Float32Array[]
-    backward(dInput: Float32Array[], LearningRate: number) : Float32Array[]
-    Save() : void;
-    ClearInputCache() : void
+    async forward(vec: GPUBuffer) : Promise<GPUBuffer>
+    async backward(inputGradient: GPUBuffer, lr: number) : Promise<GPUBuffer>
+      async Save() : Promise<void>
+      async ClearInputCache() : Promise<void>
 }

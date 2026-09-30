@@ -1,6 +1,6 @@
 {
   "name": "@mineproness/tensorloop",
-  "version": "2.1.0",
+  "version": "2.1.56",
   "description": "Raw-JAVASCRIPT Based Matirx and AI LLM Package called Tensorloop.",
   "keywords": [
     "ai",
@@ -21,6 +21,9 @@
     "url": "https://github.com/mineproness-org/tensorloop.git"
   },
   "dependencies": {
-    "gpu.js": "^2.24.0"
+    "webgpu": "^0.6.0"
+  },
+  "allowScripts": {
+    "webgpu@0.6.0": true
   }
 }

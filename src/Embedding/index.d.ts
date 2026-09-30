@@ -1,11 +1,11 @@
 export class Embedding{
-    vectors: Float32Array[]
-    constructor(embeddingSize: number, vocabSize: number, contextSize: number, configs: {
+    constructor(device: GPUBuffer ,embedding : number, vocabSize: number, config:{
+        cpuReadBack: boolean,
         save: {
             filename: string
         }
     })
-    forward(token: number | number[]) : Float32Array[] | Float32Array[][]
-    backward(token: number , inputGradient: number[] | Float32Array[], learingRate: number) : void
-    Save() : void
+    async forward(tokens: number[]) : Promise<GPUBuffer>
+    async Save() : void
+    async backward(tokens: number[], inputGradient: GPUBuffer, lr: number) : Promise<void>
 }

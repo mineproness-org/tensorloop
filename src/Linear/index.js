@@ -1,67 +1,191 @@
-import { LoadBias, LoadVectors, SaveBias, SaveVectors } from '../GetConfigs.js'
-import { existsSync } from 'fs'
-import { GPULinear } from '../gpiInit.js'
-function GenerateWeightsBias(embeddingSize, vocabSize) {
-    const vectors = []
-    const Bias = new Float32Array(vocabSize)
-    for (let a = 0; a < vocabSize; a++) {
-        vectors[a] = new Float32Array(embeddingSize)
-        for (let t = 0; t < embeddingSize; t++) {
-            vectors[a][t] = (Math.random() * 2 - 1) * 0.02
-        }
-        Bias[a] = 0
-    }
-    return { vectors, Bias }
+
+import { create, globals } from "webgpu";
+import fs from 'fs'
+import { buffer } from "stream/consumers";
+import { SaveVector, getVector } from '../getVec.js'
+import { OperationManager } from "../OperationManager.js";
+Object.assign(globalThis, globals)
+const navigator = { gpu: create([]) }
+
+
+function GenerateVectors(embeddingSize, vocabSize) {
+    const vec = new Float32Array(embeddingSize * vocabSize).map(() => (Math.random() * 2 - 1) * 0.02)
+    return vec
+}
+
+function GenerateBias(vocabSize) {
+    const vec = new Float32Array(vocabSize)
+    return vec
 }
 
 export class Linear {
-    Weights = []
-    Bias = []
+    device;
+    embeddingSize;
+    vocabSize;
     configs;
-    input = [];
+    bias;
+    weights;
+    forwardPipline;
+    configs;
+    input;
+    wBuffer;
+    bBuffer;
     gpu;
-    constructor(embeddingSize, vocabSize, configs) {
+    paramForward;
+    oldParam;
+    constructor(device, embeddingSize, vocabSize, configs) {
+        this.configs = configs
+        this.embeddingSize = embeddingSize;
+        this.vocabSize = vocabSize;
+        this.configs = configs;
+        this.device = device
+        let total = embeddingSize * vocabSize;
         if (configs && configs.save) {
-            this.configs = configs
-            if (existsSync(configs.save.filename[0]) && existsSync(configs.save.filename[1])) {
-                const Vectors = LoadVectors(configs.save.filename[0], embeddingSize)
-                const Bias = LoadBias(configs.save.filename[1])
-                this.Weights = Vectors;
-                this.Bias = Bias
+            const w = getVector(configs.save.filename[0], total);
+            const b = getVector(configs.save.filename[1], total, true)
+            if (!w && !b) {
+                this.bias = GenerateBias(vocabSize)
+                this.weights = GenerateVectors(embeddingSize, vocabSize)
+                SaveVector(configs.save.filename[0], this.weights)
+                SaveVector(configs.save.filename[1], this.bias)
             } else {
-                const { vectors, Bias } = GenerateWeightsBias(embeddingSize, vocabSize)
-                this.Weights = vectors;
-                this.Bias = Bias;
-                SaveVectors(this.Weights, configs.save.filename[0])
-                SaveBias(this.Bias, configs.save.filename[1])
+                this.bias = b;
+                this.weights = w;
             }
         } else {
-            const { vectors, Bias } = GenerateWeightsBias(embeddingSize, vocabSize)
-            this.Weights = vectors;
-            this.Bias = Bias;
+            this.bias = GenerateBias(vocabSize)
+            this.weights = GenerateVectors(embeddingSize, vocabSize)
         }
+        this.gpu = new OperationManager(device);
+        this.forwardPipline = this.gpu.getShaderPipline("./src/shaders/LF.wgsl")
+        this.backwardPipline = this.gpu.getShaderPipline("./src/shaders/LB.wgsl")
+        this.dInputBackward = this.gpu.getShaderPipline("./src/shaders/ComputeDInput.wgsl")
+    }
+    async forward(vec) {
+        const encoder = this.device.createCommandEncoder()
+        const tokenCount = vec.size / (this.embeddingSize * 4)
+        if (!this.wBuffer) {
+
+            this.wBuffer = await this.gpu.createBuffer(this.embeddingSize * this.vocabSize * 4)
+            await this.gpu.WriteBuffer(this.wBuffer, this.weights)
+            this.bBuffer = await this.gpu.createBuffer(this.vocabSize * 4)
+            await this.gpu.WriteBuffer(this.bBuffer, this.bias)
+            this.paramForward = await this.gpu.createUniFormBuffer(4 * 4)
+            this.paramBackward = await this.gpu.createUniFormBuffer(4 * 5)
+        }
+        if (!this.oldParam) {
+            this.oldParam = new Uint32Array([this.embeddingSize, this.vocabSize, 0, 0])
+        }
+        if (this.oldParam[2] !== tokenCount) {
+            await this.gpu.WriteBuffer(this.paramForward, new Uint32Array([this.embeddingSize, this.vocabSize, tokenCount, 0]))
+            this.oldParam = new Uint32Array([this.embeddingSize, this.vocabSize, tokenCount, 0]);
+        }
+        const outputBuffer = await this.gpu.createBuffer(4 * this.vocabSize * tokenCount)
+        const bind = await this.device.createBindGroup({
+            layout: await this.forwardPipline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.wBuffer
+                },
+                {
+                    binding: 1,
+                    resource: outputBuffer
+                },
+                {
+                    binding: 2,
+                    resource: vec
+                },
+                {
+                    binding: 3,
+                    resource: this.bBuffer
+                },
+                {
+                    binding: 4,
+                    resource: this.paramForward
+                }
+            ]
+        })
+        await this.gpu.RunPipline(encoder, this.forwardPipline, bind, Math.ceil((this.vocabSize * tokenCount) / 256))
+        if (this.input) this.input.destroy()
+        this.input = await this.gpu.MakeACopyBuffer(encoder, vec);
+        this.device.queue.submit([encoder.finish()])
+        return outputBuffer
+    }
+    async backward(dOutput, learningRate) {
+        const encoder = this.device.createCommandEncoder()
+        const tokenCount = dOutput.size / (this.vocabSize * 4)
+        if (!this.oldParamb) {
+            this.oldParamb = new Float32Array([this.vocabSize, 0, 0, this.embeddingSize, 0])
+        }
+        if (this.oldParamb[1] !== tokenCount || this.oldParamb[2] !== learningRate) {
+            await this.gpu.WriteBuffer(this.paramBackward, new Float32Array([this.vocabSize, tokenCount, learningRate, this.embeddingSize, 0]));
+            this.oldParamb = new Float32Array([this.vocabSize, tokenCount, learningRate, this.embeddingSize, 0]);
+        }
+        const outputBuffer = await this.gpu.createBuffer(this.embeddingSize * tokenCount * 4);
+        const bind = await this.device.createBindGroup({
+            layout: await this.backwardPipline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.bBuffer
+                },
+                {
+                    binding: 1,
+                    resource: this.wBuffer
+                },
+                {
+                    binding: 2,
+                    resource: dOutput
+                },
+                {
+                    binding: 3,
+                    resource: this.input
+                },
+                {
+                    binding: 4,
+                    resource: this.paramBackward
+                }
+            ]
+        })
+        const bind2 = await this.device.createBindGroup({
+            layout: await this.dInputBackward.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.wBuffer
+                },
+                {
+                    binding: 1,
+                    resource: dOutput
+                },
+                {
+                    binding: 3,
+                    resource: this.paramBackward
+                },
+                {
+                    binding: 4,
+                    resource: outputBuffer
+                }
+            ]
+        })
+        // console.log((await this.gpu.readBuffer(this.input.size, this.input))[0])
+        await this.gpu.RunPipline(encoder, this.dInputBackward, bind2, Math.ceil((this.embeddingSize * tokenCount) / 256));
+        await this.gpu.RunPipline(encoder, this.backwardPipline, bind, Math.ceil((this.vocabSize * tokenCount) / 256));
+        await this.device.queue.submit([encoder.finish()])
+        await dOutput.destroy()
+        this.input.destroy()
+        return outputBuffer
 
     }
-    Save() {
-        const {bias, weights} = this.gpu.Save()
-        SaveVectors(weights, this.configs.save.filename[0])
-        SaveBias(bias, this.configs.save.filename[1])
+    async Save() {
+        const b = await this.gpu.readBuffer(this.bBuffer.size, this.bBuffer);
+        const w = await this.gpu.readBuffer(this.wBuffer.size, this.wBuffer);
+        SaveVector(this.configs.save.filename[0], w)
+        SaveVector(this.configs.save.filename[1], b)
     }
-    forward(input) {
-        if (!this.gpu) {
-            this.gpu = new GPULinear(this.Weights, this.Bias, input.length)
-        }
-        for (let a = 0; a < input.length; a++) {
-            this.input[a] = input;
-        }
-        return this.gpu.forward(input)
+    async ClearInputCache() {
+        if (this.input) await this.input.destroy();
     }
-    backward(out, lr){
-        return this.gpu.backward(out, this.input, lr)
-    }
-    ClearInputCache() {
-        this.input = []
-    }
+
 }
-
-

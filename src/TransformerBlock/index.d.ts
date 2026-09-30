@@ -1,10 +1,9 @@
 export class TransformerBlock{
-    constructor(embeddingSize: number, configs:{
-        dirname: string,
-        activation: "relu" | "gelu"
+    constructor(device: GPUAdapter, embeddingSize: number, configs: {
+        dirname: string
     })
-    Save(): void
-    clearInputCache() : void
-    forward(input: Float32Array[]) : Float32Array[]
-    backward(dOutput: Float32Array[], LearningRate: number) : Float32Array[]
+    async forward(input : GPUBuffer) : Promise<GPUBuffer>
+    async backward(outInput : GPUBuffer, lr : number) : Promise<GPUBuffer>
+    async ClearInputCache() : Promise<void>
+    async Save() : Promise<void>
 }

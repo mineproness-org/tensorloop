@@ -1,13 +1,12 @@
-export class Linear{
-    Weights : Float32Array[]
-    Bias: Float32Array
-    constructor(embeddingSize : number, vocabSize : number, configs: {
+export class Linear {
+    constructor(device: GPUAdapter, embeddingSize: number, vocabSize: number, configs: {
+        cpuReadBack: boolean,
         save: {
             filename: string[]
         }
     })
-    forward(input : Float32Array[]) : Float32Array[]
-    backward(outGradient : number[] , learingRate: number) : Float32Array[]
-    Save() : void
-    ClearInputCache() : void
+    async forward(vec: GPUBuffer): Promise<GPUBuffer | Float32Array>
+    async backward(dOutput: GPUBuffer, lr: number): Promise<GPUBuffer>
+    async Save(): Promise<void>
+    async ClearInputCache() : Promise<void>
 }

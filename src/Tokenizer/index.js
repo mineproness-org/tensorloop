@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import fs, { existsSync, readFileSync } from 'fs'
 import { join, dirname, format } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -9,14 +9,20 @@ export class Tokenizer {
     IdtoWord = {};
     WordtoID = {};
     EOSToken = 2
-    constructor() {
-        this.vocabs = JSON.parse(readFileSync(join(__dirname, "vocabs.json"), "utf-8"))
+    constructor(filename="") {
+        if (fs.existsSync(filename)) {
+            console.log("Warning: Tokenizer is loaded with a Custom Vocab File!")
+            console.log("")
+            this.vocabs = JSON.parse(readFileSync(filename, "utf-8"))
+        } else {
+            this.vocabs = JSON.parse(readFileSync(join(__dirname, "vocabs.json"), "utf-8"))
+        }
         this.vocabSize = this.vocabs.length
         this.IdtoWord = Object.fromEntries(this.vocabs.map((e, idx) => [idx, e]))
         this.WordtoID = Object.fromEntries(this.vocabs.map((e, idx) => [e, idx]))
     }
     encoder(text = "") {
-        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ")
+        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ").replaceAll("<" , " < ")
         const splitedWords = AddSpaces.split(/\s+/).filter(e => e.length > 0)
         const output = []
         for (let a = 0; a < splitedWords.length; a++) {
@@ -34,9 +40,9 @@ export class Tokenizer {
                             return true
                         }
                         return false
-                    
+
                     }).reduce((prev, curr) => prev && curr, true)
-                    // if(wordsliced.length == 0) console.error("Some Word Doesn't Exist in Vocabs List. so It can be undefined!")
+                    if (wordsliced.length == 0) output.push("<unk>")
                     if (matched) {
                         wordsliced.map((e) => output.push(e))
                         output.push("$130")
@@ -70,25 +76,85 @@ export class Tokenizer {
                 }
             }
         }
-        return Validate(output.filter(e=> e.trim().length > 0)).join(" ").replaceAll(/\s+([,.;'{}`!~\"?])/g, "$1")
+        return output.filter(e => e.trim().length > 0).join(" ").replaceAll(/\s+([,.;'{}`!~\"?])/g, "$1")
     }
-}
-
-
-function Validate(output = ["hello", "guys"]) {
-    const bestOutput = []
-    output.map((e, idx) => {
-        if (idx == 0) {
-            bestOutput[idx] = e[0].toLocaleUpperCase() + e.slice(1, e.length)
-        } else {
-            if (bestOutput[idx - 1] == ":" || bestOutput[idx - 1] == ".") {
-
-                bestOutput[idx] = e[0].toLocaleUpperCase() + e.slice(1, e.length)
-            } else {
-                bestOutput[idx] = e
-            }
+    trainTokenizer(text = "ejrnienieijr", mergeLength = 5, vocabFileName) {
+        console.log("Training The Tokenizer....")
+        const arrText = text.toLocaleLowerCase().replaceAll("\r\n", "").replaceAll("\n", "").replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ").split(/\s+/).map(e => e.trim()).filter((e) => e.length > 0)
+        const reg = new RegExp(`.{0,${mergeLength}}`, "g")
+        const prevVocab = existsSync(vocabFileName) ? JSON.parse(readFileSync(vocabFileName, "utf-8")) : [];
+        const specal = ["<unk>",
+            "<PAD>",
+            "<EOS>",
+            "$12",
+            "$130",
+            "😀",
+            "😃",
+            "😄",
+            "😁",
+            "😆",
+            "😅",
+            "😂",
+            "🤣",
+            "😊",
+            "😎",
+            "❤️",
+            "👍",
+            "👎",
+            "🔥",
+            "💯",
+            "🎉",
+            "🚀",
+            "⭐",
+            "😭",
+            "😍",
+            "🥰",
+            "😡",
+            "🤔",
+            "😢",
+            "😮",
+            "👋",
+            "🙏",
+            "💀",
+            "🤖",
+            "👀",
+            "💕",
+            "💔",
+            "😂😂",
+            "😂😭",
+            "🔥🔥",
+            "❤️❤️",
+            "👍👍",
+            "<",
+            ">",
+            ".",
+            "{",
+            "}",
+            "?",
+            "!",
+            "@",
+            "$",
+            ":",
+            "/",
+            "+",
+            "-",
+            "=",
+            "%",
+            "*",
+            "@"
+        ]
+        const uniArr = [...new Set([...arrText, ...specal, ...prevVocab])];
+        const output = []
+        for(let a = 0 ; a < uniArr.length; a++){
+            let text = uniArr[a].match(reg).filter((e)=> e.length > 0);
+            output.push(...text)
         }
-
-    })
-    return bestOutput
+        let finalOutput = [...new Set([...output])]
+        fs.writeFileSync(vocabFileName, JSON.stringify(finalOutput, null, 2), "utf-8");
+        console.log("_________________________________")
+        console.log(`New VocabSize : ${finalOutput.length - prevVocab.length}`);
+        console.log("_________________________________")
+        console.log("Operation Completed!")
+        
+    }
 }

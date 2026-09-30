@@ -1,5 +1,5 @@
-export class ReLU{
-    forward(XLi : Float32Array[] | number[]) : number[] | Float32Array[];
-    backward(outputGradient: number[] | Float32Array[]) : Float32Array[];
-    ClearInputCache() : void
+export class Relu{
+    constructor(device : GPUAdapter, embeddingSize : number);
+    async forward(input: GPUBuffer) : Promise<GPUBuffer>
+    async backward(outGradinet: GPUBuffer) : Promise<GPUBuffer>
 }

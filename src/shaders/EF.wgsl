@@ -1,0 +1,25 @@
+@group(0) @binding(0)
+
+var <storage, read_write> embeddings: array<f32>;
+
+@group(0) @binding(1)
+
+var <storage, read_write> output: array<f32>;
+
+@group(0) @binding(2)
+
+var <storage, read_write> tokens: array<u32>;
+
+const embeddingSize = %embeddingSize%u;
+
+@compute @workgroup_size(256)
+
+fn main(@builtin(global_invocation_id) id : vec3<u32>){
+    let dim = id.x % embeddingSize;
+    let tokenIndex = id.x / embeddingSize;
+
+    let tokenID = tokens[tokenIndex];
+
+    let embeddingIDx = tokenID * embeddingSize + dim;
+    output[id.x] = embeddings[embeddingIDx];
+}

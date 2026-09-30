@@ -1,51 +1,46 @@
-import { Linear } from '../Linear/index.js'
-import { GELU } from '../GELU/index.js'
-import { ReLU } from '../ReLU/index.js'
+import { RELU, Linear } from "../../index.js";
 import { join } from 'path'
-import { GPUHiddenLayer } from '../gpiInit.js';
+import { OperationManager } from "../OperationManager.js";
+
+
 export class FFN {
     linear1;
     linear2;
-    hidden;
-    hiddenName;
-    constructor(embeddingSize, hiddenLayer = "gelu", configs) {
-        this.hiddenName = hiddenLayer
-        this.hidden = hiddenLayer.toLocaleLowerCase() == "gelu" ? new GELU() : new GPUHiddenLayer()
-        if (configs) {
-            this.linear1 = new Linear(embeddingSize, 4 * embeddingSize, {
-                save: {
-                    filename: [join(configs.dirname, "ffnWeights.bin"), join(configs.dirname, "ffnBias.bin")]
-                }
-            })
-            this.linear2 = new Linear(4 * embeddingSize, embeddingSize, {
-                save: {
-                    filename: [join(configs.dirname, "ffnWeights1.bin"), join(configs.dirname, "ffnBias1.bin")]
-                }
-            })
-        } else {
-            this.linear1 = new Linear(embeddingSize, 4 * embeddingSize)
-            this.linear2 = new Linear(4 * embeddingSize, embeddingSize)
-        }
+    hiddenLayer;
+    Op
+    constructor(device, embeddingSize, configs) {
+        this.Op = new OperationManager(device)
+        this.linear1 = new Linear(device, embeddingSize, embeddingSize * 4, {
+            save: {
+                filename: [join(configs.dirname, "FFN_weights1.bin"), join(configs.dirname, "FFN_bias1.bin")]
+            }
+        });
+        this.hiddenLayer = new RELU(device, embeddingSize * 4);
+        this.linear2 = new Linear(device, embeddingSize * 4, embeddingSize, {
+            save: {
+                filename: [join(configs.dirname, "FFN_weights2.bin"), join(configs.dirname, "FFN_bias2.bin")]
+            }
+        })
     }
-    forward(input) {
-        const out1 = this.linear1.forward(input)
-        let hidden = this.hidden.forward(out1)
-        const result = this.linear2.forward(hidden)
-        return result
+    async forward(vec) {
+        const logit1 = await this.linear1.forward(vec)
+        const hidden = await this.hiddenLayer.forward(logit1)
+        const final = await this.linear2.forward(hidden)
+        return final
     }
-    backward(dInput, LearningRate) {
-        const out2 = this.linear2.backward(dInput, LearningRate);
-        const dHidden = this.hidden.backward(out2)
-        const result = this.linear1.backward(dHidden, LearningRate)
-        return result
+    async backward(inputGradient, lr) {
+        const logit2 = await this.linear2.backward(inputGradient, lr)
+        const hidden = await this.hiddenLayer.backward(logit2)
+        const final = await this.linear1.backward(hidden, lr)
+        inputGradient.destroy()
+        return final
     }
-    Save() {
-        this.linear1.Save()
-        this.linear2.Save()
+    async Save(){
+        await this.linear1.Save()
+        await this.linear2.Save()
     }
-    ClearInputCache() {
+    async ClearInputCache(){
         this.linear1.ClearInputCache()
         this.linear2.ClearInputCache()
-        this.hidden.ClearInputCache()
     }
 }

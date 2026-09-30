@@ -1,30 +1,31 @@
-import { SelfAttention } from '../SelfAttention/index.js'
-import { FFN } from '../FFN/index.js'
-import fs from 'fs'
-export class TransformerBlock {
+import {SelfAttention} from '../SelfAttention/index.js'
+import {FFN} from '../FFN/index.js'
+import {existsSync, mkdirSync} from 'fs'
+
+export class TransformerBlock{
+    attention;
     ffn;
-    selfAttention;
-    constructor(embeddingSize, configs) {
-        if(!fs.existsSync(configs.dirname)) fs.mkdirSync(configs.dirname)
-        this.ffn = new FFN(embeddingSize, configs.activation, configs)
-        this.selfAttention = new SelfAttention(embeddingSize, configs)
+    constructor(device, embeddingSize, configs){
+        if(!existsSync(configs.dirname)) mkdirSync(configs.dirname);
+        this.attention = new SelfAttention(device, embeddingSize, configs)
+        this.ffn = new FFN(device, embeddingSize, configs)
     }
-    forward(input) {
-        const attention = this.selfAttention.forward(input)
-        return this.ffn.forward(attention)
+    async forward(input){
+        const xAtt = await this.attention.forward(input);
+        const xFF = await this.ffn.forward(xAtt);
+        return xFF
     }
-    backward(dOutput, learningRate) {
-        const dAttention = this.ffn.backward(dOutput, learningRate)
-        return this.selfAttention.backward(dAttention, learningRate)
+    async backward(outGradient, lr){
+        const dAtt = await this.ffn.backward(outGradient, lr);
+        const dFF = await   this.attention.backward(dAtt, lr)
+        return dFF
     }
-    clearInputCache() {
-        this.ffn.ClearInputCache()
-        this.selfAttention.key.ClearInputCache()
-        this.selfAttention.query.ClearInputCache()
-        this.selfAttention.value.ClearInputCache()
+    async ClearInputCache(){
+        await this.ffn.ClearInputCache()
+        await this.attention.ClearInputCache()
     }
-    Save() {
-        this.selfAttention.Save()
-        this.ffn.Save()
+    async Save(){
+        await this.ffn.Save()
+        await this.attention.Save()
     }
 }

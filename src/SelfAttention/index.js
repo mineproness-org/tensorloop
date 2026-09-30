@@ -1,130 +1,120 @@
-import { Softmax } from '../../index.js';
-import { Linear } from '../Linear/index.js'
+import { Linear } from "../../index.js";
+import { join } from 'path'
+import { OperationManager } from "../OperationManager.js";
 
 export class SelfAttention {
     query;
-    key;
     value;
-    v;
-    k;
+    key;
     q;
+    k;
+    v;
+    embeddingSize;
+    params;
+    attentionscoresShader;
+    softmaxForward;
+    gpu;
     input;
-    configs;
-    score;
-    softmax;
-    weights;
-    constructor(embeddingSize, configs) {
-        this.configs = configs
-        this.softmax = new Softmax()
-        this.score = Math.sqrt(embeddingSize)
-        this.query = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/query.bin`, `${configs.dirname}/queryBias.bin`] } })
-        this.key = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/key.bin`, `${configs.dirname}/keyBias.bin`] } })
-        this.value = new Linear(embeddingSize, embeddingSize, { save: { filename: [`${configs.dirname}/value.bin`, `${configs.dirname}/valueBias.bin`] } })
-    }
-    forward(vectors) {
-        this.q = this.query.forward(vectors)
-        this.v = this.value.forward(vectors)
-        this.k = this.key.forward(vectors)
-        const attentionSocres = []
-        for (let i = 0; i < this.q.length; i++) {
-            attentionSocres[i] = new Float32Array(this.k.length);
-
-            for (let j = 0; j < this.k.length; j++) {
-                if (j > i) {
-                    attentionSocres[i][j] = -1e9; // mask future
-                    continue;
-                }
-
-                let dot = 0;
-
-                for (let d = 0; d < this.q[i].length; d++) {
-                    dot += this.q[i][d] * this.k[j][d];
-                }
-
-                attentionSocres[i][j] = dot / this.score;
-            }
-        }
-
-        const weights = this.softmax.forward(attentionSocres)
-        this.weights = weights
-        const output = [];
-
-        for (let i = 0; i < weights.length; i++) {
-            output[i] = new Float32Array(this.v[0].length);
-
-            for (let j = 0; j < this.v.length; j++) {
-                for (let d = 0; d < this.v[j].length; d++) {
-                    output[i][d] += weights[i][j] * this.v[j][d];
+    constructor(device, embeddingSize, configs) {
+        this.embeddingSize = embeddingSize;
+        const dd = [1, 2, 3].map((e) => {
+            return {
+                save: {
+                    filename: [join(configs.dirname, `SELF-W-${e}.bin`), join(configs.dirname, `SELF-B-${e}.bin`)]
                 }
             }
-        }
-
-        return output;
+        })
+        this.q = new Linear(device, embeddingSize, embeddingSize, dd[0])
+        this.k = new Linear(device, embeddingSize, embeddingSize, dd[1])
+        this.v = new Linear(device, embeddingSize, embeddingSize, dd[2])
+        this.gpu = new OperationManager(device)
+        this.attentionscoresShader = this.gpu.getShaderPipline("./src/shaders/attentionShader/attentionSocres.wgsl")
+        this.softmaxForward = this.gpu.getShaderPipline("./src/shaders/SF.wgsl")
+        this.softmaxBackward = this.gpu.getShaderPipline("./src/shaders/SoftmaxBackward.wgsl")
+        this.outputForward = this.gpu.getShaderPipline("./src/shaders/attentionShader/CompueFinalForwardOutput.wgsl")
+        this.dVShader = this.gpu.getShaderPipline("./src/shaders/attentionShader/ComputeDV.wgsl")
+        this.dAshader = this.gpu.getShaderPipline("./src/shaders/attentionShader/ComputeDA.wgsl")
+        this.dQshader = this.gpu.getShaderPipline("./src/shaders/attentionShader/ComputedQ.wgsl")
+        this.dKShader = this.gpu.getShaderPipline("./src/shaders/attentionShader/ComputeK.wgsl")
+        this.sumShader = this.gpu.getShaderPipline("./src/shaders/attentionShader/sumGradient.wgsl")
     }
-    softmaxBack(probs, dOut) {
-        const dIn = new Float32Array(probs.length);
+    async forward(vec) {
+        if (this.input) await this.input.destroy()
+        this.input = vec;
+        const tokenCount = vec.size / (this.embeddingSize * 4)
+        if (!this.asParams) this.asParams = await this.gpu.createUniFormBuffer(4 * 3);
+        if (!this.softmaxParams) this.softmaxParams = await this.gpu.createUniFormBuffer(4 * 3);
+        const encoder = await this.gpu.CreateEncoder()
+        const scroes = await this.gpu.createBuffer(tokenCount * tokenCount * 4)
+        await this.gpu.WriteBuffer(this.asParams, new Uint32Array([tokenCount, this.embeddingSize, 0]))
+        await this.gpu.WriteBuffer(this.softmaxParams, new Uint32Array([tokenCount, tokenCount, 0]))
+        if (this.query) this.query.destroy()
+        if (this.key) this.key.destroy()
+        if (this.value) this.value.destroy()
+        this.query = await this.q.forward(vec)
+        this.key = await this.k.forward(vec)
+        this.value = await this.v.forward(vec)
+        const bindAttention = await this.gpu.createBindGroup(this.attentionscoresShader, 0, [this.query, this.key, scroes, this.asParams])
+        await this.gpu.RunPipline(encoder, this.attentionscoresShader, bindAttention, Math.ceil(tokenCount / 16), Math.ceil(tokenCount / 16))
+        if (this.weights) this.weights.destroy()
+        this.weights = await this.gpu.createBuffer(tokenCount * tokenCount * 4)
+        const bindSF = await this.gpu.createBindGroup(this.softmaxForward, 0, [scroes, this.weights, this.softmaxParams]);
+        await this.gpu.RunPipline(encoder, this.softmaxForward, bindSF, tokenCount)
+        const finalOutput = await this.gpu.createBuffer(tokenCount * this.embeddingSize * 4)
+        const outputBind = await this.gpu.createBindGroup(this.outputForward, 0, [this.weights, this.value, finalOutput, this.asParams]);
+        await this.gpu.RunPipline(encoder, this.outputForward, outputBind, Math.ceil((tokenCount * this.embeddingSize) / 256))
 
-        for (let i = 0; i < probs.length; i++) {
-            let sum = 0;
-            for (let j = 0; j < probs.length; j++) {
-                const jacobian =
-                    i === j
-                        ? probs[i] * (1 - probs[i])
-                        : -probs[i] * probs[j];
-
-                sum += jacobian * dOut[j];
-            }
-            dIn[i] = sum;
-        }
-
-        return dIn;
+        await this.gpu.submitQueue(encoder)
+        scroes.destroy()
+        return finalOutput
     }
-    backward(dOutput, learningRate) {
-        const dV = this.v.map((e) => new Float32Array(e.length));
-        const dWeights = []
-        for (let a = 0; a < this.weights.length; a++) {
-            dWeights[a] = new Float32Array(this.weights[a].length)
-            for (let j = 0; j < this.v.length; j++) {
-                for (let r = 0; r < this.v[j].length; r++) {
-                    dWeights[a][j] += dOutput[a][r] * this.v[j][r]
-                    dV[j][r] += dOutput[a][r] * this.weights[a][j]
-                }
-            }
-        }
-        const dScores = []
-        for (let t = 0; t < dWeights.length; t++) {
-            dScores[t] = this.softmaxBack(this.weights[t], dWeights[t])
-        }
-        const dQ = this.q.map(q => new Float32Array(q.length));
-        const dK = this.k.map(k => new Float32Array(k.length));
-        for (let a = 0; a < this.q.length; a++) {
-            for (let j = 0; j < this.k.length; j++) {
-                if (j > a) continue;
-                for (let r = 0; r < this.q[a].length; r++) {
-                    dQ[a][r] += dScores[a][j] * this.k[j][r] / this.score;
-                    dK[j][r] += dScores[a][j] * this.q[a][r] / this.score;
-                }
-            }
-        }
-        const dInput = this.q.map(() => new Float32Array(this.q[0].length))
-        const dq = this.query.backward(dQ, learningRate)
-        const dk = this.key.backward(dK, learningRate)
-        const dv = this.value.backward(dV, learningRate)
-        for (let a = 0; a < this.q.length; a++) {
-            for (let b = 0; b < dq.length; b++) {
-                dInput[a][b] = dq[a][b] + dk[a][b] + dv[a][b]
-            }
-        }
-        return dInput
+    async backward(dO, lr) {
+        const tokenCount = dO.size / (this.embeddingSize * 4);
+        const encoder = await this.gpu.CreateEncoder();
+        const dV = await this.gpu.createBuffer(dO.size);
+        const DvBind = await this.gpu.createBindGroup(this.dVShader, 0, [this.weights, dO, dV, this.asParams]);
+        await this.gpu.RunPipline(encoder, this.dVShader, DvBind, Math.ceil(tokenCount / 16), Math.ceil(this.embeddingSize / 16));
+        const dA = await this.gpu.createBuffer(tokenCount * tokenCount * 4)
+        const DaBind = await this.gpu.createBindGroup(this.dAshader, 0, [dO, this.value, dA, this.asParams]);
+        await this.gpu.RunPipline(encoder, this.dAshader, DaBind, Math.ceil(tokenCount / 16), Math.ceil(tokenCount / 16))
+        const dS = await this.gpu.createBuffer(tokenCount * tokenCount * 4);
+        const dSBind = await this.gpu.createBindGroup(this.softmaxBackward, 0, [this.weights, dA, dS, this.asParams])
+        await this.gpu.RunPipline(encoder, this.softmaxBackward, dSBind, Math.ceil((tokenCount * tokenCount) / 256))
+        const dQ = await this.gpu.createBuffer(tokenCount * this.embeddingSize * 4);
+        const dQbind = await this.gpu.createBindGroup(this.dQshader, 0, [dS, this.key, dQ, this.asParams]);
+        await this.gpu.RunPipline(encoder, this.dQshader, dQbind, Math.ceil(tokenCount / 16), Math.ceil(this.embeddingSize / 16))
+        const dK = await this.gpu.createBuffer(this.embeddingSize * tokenCount * 4)
+        const dKbind = await this.gpu.createBindGroup(this.dKShader, 0, [dS, this.query, dK, this.asParams]);
+        await this.gpu.RunPipline(encoder, this.dKShader, dKbind, Math.ceil(tokenCount / 16), Math.ceil(this.embeddingSize / 16))
+        await this.gpu.submitQueue(encoder);
+        const dq = await this.q.backward(dQ, lr)
+        const dk = await this.k.backward(dK, lr)
+        const dv = await this.v.backward(dV, lr)
+        const output = await this.gpu.createBuffer(this.embeddingSize * tokenCount * 4);
+        const encode = this.gpu.CreateEncoder()
+        const outputBind = await this.gpu.createBindGroup(this.sumShader, 0 , [dq, dk, dv, output, this.softmaxParams]);
+        await this.gpu.RunPipline(encode, this.sumShader, outputBind, Math.ceil((tokenCount * this.embeddingSize / 256)));
+        await this.gpu.submitQueue(encode)
+        dS.destroy()
+        dA.destroy()
+        dq.destroy()
+        dk.destroy()
+        dv.destroy()
+        dK.destroy()
+        dQ.destroy()
+        dV.destroy()
+        dO.destroy()
+        return output
+        
     }
-    Save() {
-        this.query.Save()
-        this.key.Save()
-        this.value.Save()
+    async ClearInputCache(){
+       await this.q.ClearInputCache()
+       await this.k.ClearInputCache()
+       await this.v.ClearInputCache()
     }
-    ClearInputCache() {
-        this.query.ClearInputCache()
-        this.key.ClearInputCache()
-        this.value.ClearInputCache()
+    async Save(){
+       await this.q.Save()
+       await this.q.Save()
+       await this.q.Save()
     }
 }
