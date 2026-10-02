@@ -63,7 +63,6 @@ export class SelfAttention {
         const finalOutput = await this.gpu.createBuffer(tokenCount * this.embeddingSize * 4)
         const outputBind = await this.gpu.createBindGroup(this.outputForward, 0, [this.weights, this.value, finalOutput, this.asParams]);
         await this.gpu.RunPipline(encoder, this.outputForward, outputBind, Math.ceil((tokenCount * this.embeddingSize) / 256))
-
         await this.gpu.submitQueue(encoder)
         scroes.destroy()
         return finalOutput
@@ -114,7 +113,7 @@ export class SelfAttention {
     }
     async Save(){
        await this.q.Save()
-       await this.q.Save()
-       await this.q.Save()
+       await this.k.Save()
+       await this.v.Save()
     }
 }

@@ -1,4 +1,8 @@
 import fs from 'fs'
+import path, { join, dirname, format } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class OperationManager {
     device;
@@ -38,7 +42,7 @@ export class OperationManager {
         return result
     }
     getShaderPipline(filename, value = { "embedding": 123 }, entryPoint = "main") {
-        let readShaderCode = fs.readFileSync(filename, "utf-8");
+        let readShaderCode = fs.readFileSync(path.join(__dirname, `../${filename}`), "utf-8");
         if (value) {
             for (const a in value) {
                 readShaderCode = readShaderCode.replaceAll(`%${a}%`, value[a])
@@ -63,10 +67,10 @@ export class OperationManager {
         const pass = encoder.beginComputePass();
         pass.setPipeline(pipline)
         pass.setBindGroup(0, binding)
-        pass.dispatchWorkgroups(dispatchWorkgroups, y , z)
+        pass.dispatchWorkgroups(dispatchWorkgroups, y, z)
         pass.end()
     }
-   
+
     async MakeACopyBuffer(encoder, sourceBuffer) {
         const buffer = this.device.createBuffer({
             size: sourceBuffer.size,
@@ -75,22 +79,22 @@ export class OperationManager {
         encoder.copyBufferToBuffer(sourceBuffer, 0, buffer, 0, sourceBuffer.size);
         return buffer
     }
-    CreateEncoder(){
+    CreateEncoder() {
         return this.device.createCommandEncoder()
     }
-    createBindGroup(shader,groupNum,ent){
+    createBindGroup(shader, groupNum, ent) {
         return this.device.createBindGroup({
             layout: shader.getBindGroupLayout(groupNum),
-            entries: ent.map((e, x)=>{
+            entries: ent.map((e, x) => {
                 return {
-                    binding : x,
-                    resource: e 
+                    binding: x,
+                    resource: e
                 }
             })
         })
     }
-    async submitQueue(encoder){
-         this.device.queue.submit([encoder.finish()])
+    async submitQueue(encoder) {
+        this.device.queue.submit([encoder.finish()])
     }
 
 }   

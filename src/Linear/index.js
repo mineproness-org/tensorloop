@@ -42,7 +42,7 @@ export class Linear {
         let total = embeddingSize * vocabSize;
         if (configs && configs.save) {
             const w = getVector(configs.save.filename[0], total);
-            const b = getVector(configs.save.filename[1], total, true)
+            const b = getVector(configs.save.filename[1], vocabSize, true)
             if (!w && !b) {
                 this.bias = GenerateBias(vocabSize)
                 this.weights = GenerateVectors(embeddingSize, vocabSize)

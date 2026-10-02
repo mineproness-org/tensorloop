@@ -27,5 +27,5 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     }
     let p = P[index];
     let dp = dP[index];
-    output[index] = clamp(p * (dp - dot), -1.0, 1.0);
+    output[index] = p * (dp - dot);
 }
