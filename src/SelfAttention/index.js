@@ -91,7 +91,7 @@ export class SelfAttention {
         const dv = await this.v.backward(dV, lr)
         const output = await this.gpu.createBuffer(this.embeddingSize * tokenCount * 4);
         const encode = this.gpu.CreateEncoder()
-        const outputBind = await this.gpu.createBindGroup(this.sumShader, 0 , [dq, dk, dv, output, this.softmaxParams]);
+        const outputBind = await this.gpu.createBindGroup(this.sumShader, 0 , [dq, dk, dv, output, this.asParams]);
         await this.gpu.RunPipline(encode, this.sumShader, outputBind, Math.ceil((tokenCount * this.embeddingSize / 256)));
         await this.gpu.submitQueue(encode)
         dS.destroy()
