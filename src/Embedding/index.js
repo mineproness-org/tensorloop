@@ -1,4 +1,5 @@
-// import { config } from "process";
+import { config } from "process";
+
 import { SaveVector, getVector } from '../getVec.js'
 import { OperationManager } from "../OperationManager.js";
 
@@ -130,7 +131,7 @@ export class Embedding {
                 }
             ]
         })
-        await this.gpu.WriteBuffer(this.tokenBuffer, new Float32Array(token));
+        await this.gpu.WriteBuffer(this.tokenBuffer, new Uint32Array(token));
         await this.gpu.RunPipline(encoder, this.backwardPipline, bind, Math.ceil((this.embeddingSize * token.length) / 256))
         this.device.queue.submit([encoder.finish()])
         inputGradient.destroy()

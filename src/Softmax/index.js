@@ -152,7 +152,7 @@ export class Softmax {
                 },
             ]
         })
-        await this.gpu.RunPipline(encoder, this.lossPipline, bind, Math.ceil((this.vocabSize * tokenCount) / 256))
+        await this.gpu.RunPipline(encoder, this.lossPipline, bind, Math.ceil((tokenCount / 4)))
         const outputLoss = await this.gpu.createBuffer(4)
         const reduceBind = await this.gpu.createBindGroup(this.reduceFn, 0, [loss, outputLoss, this.paramsForward])
         await this.gpu.RunPipline(encoder, this.reduceFn, reduceBind, 1);

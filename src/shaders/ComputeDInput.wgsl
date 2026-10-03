@@ -28,5 +28,5 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let grad = outGradient[token * u32(params.vocabSize) + i];
         gradInput += grad * w;
     }
-    dInput[index] = max(-1.0, min(1.0,gradInput));
+    dInput[index] = max(-7.0, min(7.0,gradInput));
 }
