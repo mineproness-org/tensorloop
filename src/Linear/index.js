@@ -113,6 +113,8 @@ export class Linear {
         return outputBuffer
     }
     async backward(dOutput, learningRate) {
+        if(this.pdOutput) await this.pdOutput.destroy();
+         this.pdOutput = dOutput
         const encoder = this.device.createCommandEncoder()
         const tokenCount = dOutput.size / (this.vocabSize * 4)
         if (!this.oldParamb) {
@@ -173,7 +175,6 @@ export class Linear {
         await this.gpu.RunPipline(encoder, this.dInputBackward, bind2, Math.ceil((this.embeddingSize * tokenCount) / 256));
         await this.gpu.RunPipline(encoder, this.backwardPipline, bind, Math.ceil((this.vocabSize * tokenCount) / 256));
         await this.device.queue.submit([encoder.finish()])
-        await dOutput.destroy()
         this.input.destroy()
         return outputBuffer
 

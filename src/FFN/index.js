@@ -29,10 +29,11 @@ export class FFN {
         return final
     }
     async backward(inputGradient, lr) {
+        if(this.prevOUTGR)  await this.prevOUTGR.destroy()
+        this.prevOUTGR = inputGradient;
         const logit2 = await this.linear2.backward(inputGradient, lr)
         const hidden = await this.hiddenLayer.backward(logit2)
         const final = await this.linear1.backward(hidden, lr)
-        inputGradient.destroy()
         return final
     }
     async Save(){

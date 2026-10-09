@@ -8,9 +8,10 @@ export class OperationManager {
     device;
     matrixMatSHhaders;
     params;
-    matrixParams;
+    addShader;
     constructor(device) {
         this.device = device;
+        this.addShader = this.getShaderPipline("./src/shaders/add.wgsl")
     }
     async createBuffer(size) {
         return this.device.createBuffer({
@@ -71,18 +72,21 @@ export class OperationManager {
         pass.end()
     }
 
-    async MakeACopyBuffer(encoder, sourceBuffer) {
+    async MakeACopyBuffer(encoder2, sourceBuffer) {
+         const encoder = encoder2 ? encoder2 : await this.CreateEncoder()
         const buffer = this.device.createBuffer({
             size: sourceBuffer.size,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
         })
         encoder.copyBufferToBuffer(sourceBuffer, 0, buffer, 0, sourceBuffer.size);
+        if(!encoder2) await this.submitQueue(encoder)
         return buffer
     }
     CreateEncoder() {
         return this.device.createCommandEncoder()
     }
     createBindGroup(shader, groupNum, ent) {
+        
         return this.device.createBindGroup({
             layout: shader.getBindGroupLayout(groupNum),
             entries: ent.map((e, x) => {
@@ -95,6 +99,21 @@ export class OperationManager {
     }
     async submitQueue(encoder) {
         this.device.queue.submit([encoder.finish()])
+    }
+    async add(a, b, size) {
+        if (!this.params) {
+            this.params = await this.createUniFormBuffer(4 * 4)
+
+        }
+        const encoder = await this.CreateEncoder()
+        const output = await this.createBuffer(a.size);
+        const bind = await this.createBindGroup(this.addShader, 0, [a, b, output, this.params]);
+        await this.WriteBuffer(this.params, new Uint32Array([size, 0]))
+        await this.RunPipline(encoder, this.addShader, bind, Math.ceil(size / 64));
+        await this.submitQueue(encoder)
+        // a.destroy()
+        // b.destroy()
+        return output
     }
 
 }   

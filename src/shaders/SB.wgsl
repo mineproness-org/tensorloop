@@ -27,8 +27,11 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     let vocabIndex = index % params.vocabSize;
     let start = token * params.vocabSize;
     let end = start + params.vocabSize;
+    let total = params.tokenCount * params.vocabSize;
+    if (index >= total) {
+      return;
+    }
     var targetIndex = targetToken[token];
-    let total: u32 = params.tokenCount * params.vocabSize;
     output[index] = probs[index];
     if(vocabIndex == u32(targetIndex)){
         output[index] -= 1;

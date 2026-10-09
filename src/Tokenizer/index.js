@@ -9,7 +9,7 @@ export class Tokenizer {
     IdtoWord = {};
     WordtoID = {};
     EOSToken = 2
-    constructor(filename="") {
+    constructor(filename = "") {
         if (fs.existsSync(filename)) {
             console.log("Warning: Tokenizer is loaded with a Custom Vocab File!")
             console.log("")
@@ -22,12 +22,12 @@ export class Tokenizer {
         this.WordtoID = Object.fromEntries(this.vocabs.map((e, idx) => [e, idx]))
     }
     encoder(text = "") {
-        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ").replaceAll("<" , " < ")
+        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ").replaceAll("<", " < ")
         const splitedWords = AddSpaces.split(/\s+/).filter(e => e.length > 0)
         const output = []
         for (let a = 0; a < splitedWords.length; a++) {
             const word = splitedWords[a]
-            if (this.WordtoID[word]) {
+            if (this.WordtoID[word] !== undefined) {
                 output.push(word)
             } else {
                 let max = word.length
@@ -36,7 +36,7 @@ export class Tokenizer {
                     const regPatten = new RegExp(`.{0,${max}}`, "g")
                     const wordsliced = word.match(regPatten).filter((e) => e.length > 0)
                     const matched = wordsliced.flatMap(e => {
-                        if (this.WordtoID[e]) {
+                        if (this.WordtoID[e] !== undefined) {
                             return true
                         }
                         return false
@@ -145,8 +145,8 @@ export class Tokenizer {
         ]
         const uniArr = [...new Set([...arrText, ...specal, ...prevVocab])];
         const output = []
-        for(let a = 0 ; a < uniArr.length; a++){
-            let text = uniArr[a].match(reg).filter((e)=> e.length > 0);
+        for (let a = 0; a < uniArr.length; a++) {
+            let text = uniArr[a].match(reg).filter((e) => e.length > 0);
             output.push(...text)
         }
         let finalOutput = [...new Set([...output])]
@@ -155,6 +155,10 @@ export class Tokenizer {
         console.log(`New VocabSize : ${finalOutput.length - prevVocab.length}`);
         console.log("_________________________________")
         console.log("Operation Completed!")
-        
+        this.vocabs = finalOutput;
+        this.vocabSize = finalOutput.length;
+        this.IdtoWord = Object.fromEntries(this.vocabs.map((e, idx) => [idx, e]))
+        this.WordtoID = Object.fromEntries(this.vocabs.map((e, idx) => [e, idx]))
+
     }
 }

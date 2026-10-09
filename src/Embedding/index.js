@@ -98,7 +98,7 @@ export class Embedding {
             this.param = await this.gpu.createUniFormBuffer(this.oldParam.byteLength);
             this.tokenBuffer = await this.gpu.createBuffer(4 * token.length)
         }
-        if (this.oldParam[1] !== lr) {
+        if (this.oldParam[0] !== lr) {
             this.oldParam = new Float32Array([lr, 0]);
             this.gpu.WriteBuffer(this.param, this.oldParam)
         }
@@ -134,6 +134,7 @@ export class Embedding {
         await this.gpu.WriteBuffer(this.tokenBuffer, new Uint32Array(token));
         await this.gpu.RunPipline(encoder, this.backwardPipline, bind, Math.ceil((this.embeddingSize * token.length) / 256))
         this.device.queue.submit([encoder.finish()])
-        inputGradient.destroy()
+        if(this.prevGra) this.prevGra.destroy()
+        this.prevGra = inputGradient;
     }
 }

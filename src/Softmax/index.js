@@ -63,6 +63,7 @@ export class Softmax {
         }
         if (cpuReadBack) {
             const outputCPU = await this.gpu.readBuffer(output.size, output);
+            logits.destroy()
             return outputCPU
         }
         return output
@@ -123,7 +124,7 @@ export class Softmax {
         const targetBuffer = await this.gpu.createBuffer(target.length * Float32Array.BYTES_PER_ELEMENT)
         const loss = await this.gpu.createBuffer(4 * tokenCount)
         const acc = await this.gpu.createBuffer(4 * 2)
-        await this.gpu.WriteBuffer(targetBuffer, new Float32Array(target))
+        await this.gpu.WriteBuffer(targetBuffer, new Uint32Array(target))
         const bind = await this.device.createBindGroup({
             layout: await this.lossPipline.getBindGroupLayout(0),
             entries: [

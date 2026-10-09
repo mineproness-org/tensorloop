@@ -28,6 +28,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         output[index] = x;
     }
     else {
-        output[index] = x * 0.02;
+        output[index] = 0;
     }
 }

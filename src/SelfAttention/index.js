@@ -102,7 +102,8 @@ export class SelfAttention {
         dK.destroy()
         dQ.destroy()
         dV.destroy()
-        dO.destroy()
+        if(this.prevdO) await this.prevdO.destroy()
+        this.prevdO = dO
         return output
         
     }

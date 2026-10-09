@@ -32,6 +32,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         output[index] = grad;
     }
     else {
-        output[index] = grad * 0.02;
+        output[index] = 0;
     }
 }

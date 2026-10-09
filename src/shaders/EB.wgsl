@@ -17,7 +17,7 @@ var<storage, read_write> tokens: array<u32>;
 @group(0) @binding(3)
 var<uniform> params: Params;
 
-const embeddingSize = % embeddingSize % u;
+const embeddingSize = %embeddingSize%u;
 
 @compute @workgroup_size(256)
 
