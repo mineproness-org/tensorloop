@@ -1,4 +1,4 @@
-import { Embedding, Linear, Softmax, TransformerBlock, Tokenizer, PositionEmbedding } from '../../index.js'
+import { Embedding, Linear, Softmax, TransformerBlock, Tokenizer, PositionEmbedding, RMSNorm } from '../../index.js'
 import { join } from 'path'
 import fs from 'fs'
 import { OperationManager } from '../OperationManager.js'
@@ -16,6 +16,7 @@ export class Model {
     tokenizerName;
     op;
     tokens;
+    rmsnorm
     constructor(device, embeddingSize = 64, configs) {
         this.device = device;
         this.dimSize = embeddingSize;

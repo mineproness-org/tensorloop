@@ -42,14 +42,14 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let inputValue = input[token * u32(params.inputSize) + inputIndex];
         let gradient = outGradient[token * u32(params.vocabSize) + outputIndex];
         let dW = inputValue * gradient;
-        dWeights += f32(max(-3.0, min(3.0, dW)));
+        dWeights += dW;
     }
     let vClap = weight[index] - params.lr * dWeights;
     weight[index] = vClap;
     if (inputIndex == 0u) {
         var dBias = 0.0;
         for (var token = 0u; token < u32(params.tokenCount); token++) {
-            dBias += f32(max(-3.0, min(3.0, outGradient[token * u32(params.vocabSize) + outputIndex])));
+            dBias += outGradient[token * u32(params.vocabSize) + outputIndex];
         }
         bias[outputIndex] = bias[outputIndex] - params.lr * dBias;
 

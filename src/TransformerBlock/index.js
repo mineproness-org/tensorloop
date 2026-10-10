@@ -1,47 +1,74 @@
-import {SelfAttention} from '../SelfAttention/index.js'
-import {FFN} from '../FFN/index.js'
-import {existsSync, mkdirSync} from 'fs'
-import {OperationManager} from '../OperationManager.js'
-export class TransformerBlock{
+
+import { SelfAttention } from '../SelfAttention/index.js';
+import { FFN } from '../FFN/index.js';
+import { existsSync, mkdirSync } from 'fs';
+import { RMSNorm } from '../../index.js';
+import { OperationManager } from '../OperationManager.js';
+
+export class TransformerBlock {
     attention;
     ffn;
     gpu;
     size;
-    constructor(device, embeddingSize, configs){
+    rmsnorm;
+    rmsnorm2;
+
+    constructor(device, embeddingSize, configs) {
         this.size = embeddingSize;
-        if(!existsSync(configs.dirname)) mkdirSync(configs.dirname);
-        this.attention = new SelfAttention(device, embeddingSize, configs)
-        this.ffn = new FFN(device, embeddingSize, configs)
-        this.gpu = new OperationManager(device)
+
+        this.rmsnorm = new RMSNorm(device, embeddingSize);
+        this.rmsnorm2 = new RMSNorm(device, embeddingSize);
+
+        if (!existsSync(configs.dirname)) {
+            mkdirSync(configs.dirname, { recursive: true });
+        }
+
+        this.attention = new SelfAttention(
+            device, embeddingSize, configs
+        );
+
+        this.ffn = new FFN(device, embeddingSize, configs);
+        this.gpu = new OperationManager(device);
     }
-    async forward(input){
-        let context = input.size / (this.size * 4)
-        const xAtt = await this.attention.forward(input);
-        const re1 = await this.gpu.add(input, xAtt, this.size * context)
-        const xFF = await this.ffn.forward(re1);
-        const re2 = await this.gpu.add(re1, xFF, this.size * context)
-        xAtt.destroy()
-        xFF.destroy()
-        return re2
+
+    async forward(input) {
+        const count = input.size / 4;
+        const norm1 = await this.rmsnorm.forward(input);
+        const att = await this.attention.forward(norm1);
+        const h = await this.gpu.add(input, att, count);
+        const norm2 = await this.rmsnorm2.forward(h);
+        const f = await this.ffn.forward(norm2);
+        const y = await this.gpu.add(h, f, count);
+        norm1.destroy();
+        att.destroy();
+        f.destroy();
+        return y;
     }
-    async backward(outGradient, lr){
-        const context = outGradient.size / (this.size * 4)
-        const dAtt = await this.ffn.backward(outGradient, lr);
-        const re1 = await this.gpu.add(outGradient, dAtt, this.size * context)
-        const dFF = await this.attention.backward(re1, lr)
-        const re2 = await this.gpu.add(re1, dFF , context)
-        outGradient.destroy()
-        re1.destroy()
-        dFF.destroy()
-        dAtt.destroy()
-        return re2
+
+    async backward(outGradient, lr) {
+        const count = outGradient.size / 4;
+        const dNorm2 = await this.ffn.backward(outGradient, lr);
+        const dHFromFFN = await this.rmsnorm2.backward(dNorm2);
+        const dH = await this.gpu.add(outGradient, dHFromFFN, count);
+        const dNorm1 = await this.attention.backward(dH, lr);
+        const dInputFromAttention = await this.rmsnorm.backward(dNorm1);
+        const dInput = await this.gpu.add(dH, dInputFromAttention, count);
+        dNorm2.destroy();
+        dHFromFFN.destroy();
+        dH.destroy();
+        dNorm1.destroy();
+        dInputFromAttention.destroy();
+        dInputFromAttention.destroy();
+        return dInput;
     }
-    async ClearInputCache(){
-        await this.ffn.ClearInputCache()
-        await this.attention.ClearInputCache()
+
+    async ClearInputCache() {
+        await this.ffn.ClearInputCache();
+        await this.attention.ClearInputCache();
     }
-    async Save(){
-        await this.ffn.Save()
-        await this.attention.Save()
+
+    async Save() {
+        await this.ffn.Save();
+        await this.attention.Save();
     }
 }

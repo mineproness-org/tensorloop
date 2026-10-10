@@ -8,6 +8,7 @@ import {SelfAttention as ST} from './src/SelfAttention/index.js'
 import {TransformerBlock as TT} from './src/TransformerBlock/index.js'
 import { Model as m } from "./src/Model/index.js";
 import {PositionEmbedding as PM } from './src/PositionEmbedding/index.js'
+import { RMSNorm as RM } from "./src/RMSNorm/index.js";
 export const Embedding = E
 export const Linear = L
 export const Softmax = S;
@@ -18,3 +19,4 @@ export const SelfAttention = ST
 export const TransformerBlock = TT;
 export const Model = m;
 export const PositionEmbedding = PM;
+export const RMSNorm = RM
