@@ -22,12 +22,12 @@ export class Tokenizer {
         this.WordtoID = Object.fromEntries(this.vocabs.map((e, idx) => [e, idx]))
     }
     encoder(text = "") {
-        const AddSpaces = text.toLocaleLowerCase().replaceAll(/([,.;'{}!`~\|":><?])/g, " $1 ").replaceAll("<", " < ")
+        const AddSpaces = text.replaceAll(/<EOS>/gi, " <EOS> ").toLocaleLowerCase().replaceAll(/<eos>/g, " <EOS> ").replaceAll(/([,.;'{}!`~|":?])/g, " $1 ");
         const splitedWords = AddSpaces.split(/\s+/).filter(e => e.length > 0)
         const output = []
         for (let a = 0; a < splitedWords.length; a++) {
             const word = splitedWords[a]
-            if (this.WordtoID[word] !== undefined) {
+            if (typeof this.WordtoID[word] !== "undefined") {
                 output.push(word)
             } else {
                 let max = word.length

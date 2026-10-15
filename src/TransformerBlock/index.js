@@ -4,6 +4,7 @@ import { FFN } from '../FFN/index.js';
 import { existsSync, mkdirSync } from 'fs';
 import { RMSNorm } from '../../index.js';
 import { OperationManager } from '../OperationManager.js';
+import { join } from 'path';
 
 export class TransformerBlock {
     attention;
@@ -16,8 +17,16 @@ export class TransformerBlock {
     constructor(device, embeddingSize, configs) {
         this.size = embeddingSize;
 
-        this.rmsnorm = new RMSNorm(device, embeddingSize);
-        this.rmsnorm2 = new RMSNorm(device, embeddingSize);
+        this.rmsnorm = new RMSNorm(device, embeddingSize, {
+            save: {
+                filename: join(configs.dirname, "LAYERNORM-1.bin")
+            }
+        });
+        this.rmsnorm2 = new RMSNorm(device, embeddingSize, {
+            save: {
+                filename: join(configs.dirname, "LAYERNORM-2.bin")
+            }
+        });
 
         if (!existsSync(configs.dirname)) {
             mkdirSync(configs.dirname, { recursive: true });
@@ -48,10 +57,10 @@ export class TransformerBlock {
     async backward(outGradient, lr) {
         const count = outGradient.size / 4;
         const dNorm2 = await this.ffn.backward(outGradient, lr);
-        const dHFromFFN = await this.rmsnorm2.backward(dNorm2);
+        const dHFromFFN = await this.rmsnorm2.backward(dNorm2 , lr);
         const dH = await this.gpu.add(outGradient, dHFromFFN, count);
         const dNorm1 = await this.attention.backward(dH, lr);
-        const dInputFromAttention = await this.rmsnorm.backward(dNorm1);
+        const dInputFromAttention = await this.rmsnorm.backward(dNorm1, lr);
         const dInput = await this.gpu.add(dH, dInputFromAttention, count);
         dNorm2.destroy();
         dHFromFFN.destroy();
@@ -70,5 +79,7 @@ export class TransformerBlock {
     async Save() {
         await this.ffn.Save();
         await this.attention.Save();
+        await this.rmsnorm.Save()
+        await this.rmsnorm2.Save()
     }
 }

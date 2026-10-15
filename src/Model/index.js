@@ -46,7 +46,7 @@ export class Model {
             })
         }
         this.posEmbedding = new PositionEmbedding(this.device, this.dimSize, this.configs.contextSize, {
-            save:{
+            save: {
                 filename: join(this.configs.dirname, "posVec.bin")
             }
         })
@@ -61,7 +61,7 @@ export class Model {
         }
     }
     async forward(input, readBack) {
-        if(this.configs.contextSize < input.length) throw new Error("The Input is larger then contextSize")
+        if (this.configs.contextSize < input.length) throw new Error("The Input is larger then contextSize")
         this.tokens = input;
         await this.ClearInputCache()
         let vec = await this.embedding.forward(input)
@@ -77,7 +77,7 @@ export class Model {
         const loss = await this.softmax.crossEntropy(outputGradient, target)
         const dLogits = await this.softmax.backward(outputGradient, target);
         let DInput = await this.linear.backward(dLogits, lr);
-        for (let a = this.blockSize - 1; a !== 0; a--) {
+        for (let a = this.blockSize - 1; a >= 0; a--) {
             DInput = await this.blocks[a].backward(DInput, lr);
         }
         this.embedding.backward(this.tokens, DInput, lr);
@@ -87,7 +87,7 @@ export class Model {
     async Save() {
         await this.embedding.Save()
         await this.linear.Save()
-        for (let a = this.blockSize - 1; a !== 0; a--) {
+        for (let a = this.blockSize - 1; a >= 0; a--) {
             await this.blocks[a].Save();
         }
         await this.posEmbedding.Save()

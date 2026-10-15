@@ -111,7 +111,7 @@ export class Softmax {
                 }
             ]
         })
-        await this.gpu.RunPipline(encoder, this.backwardPipline, bind, Math.ceil((tokenCount * this.vocabSize) / 256))
+        await this.gpu.RunPipline(encoder, this.backwardPipline, bind, tokenCount)
         this.device.queue.submit([encoder.finish()])
         probs.destroy()
         targetBuffer.destroy()
